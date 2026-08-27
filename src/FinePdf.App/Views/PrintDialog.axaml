@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FinePdf.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="380" d:DesignHeight="300"
+        x:Class="FinePdf.App.Views.PrintDialog"
+        x:DataType="vm:PrintDialogViewModel"
+        Title="Stampa"
+        Width="400" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+    <StackPanel Margin="20" Spacing="12">
+
+        <TextBlock Text="Nessuna stampante disponibile."
+                   Foreground="#CC0000"
+                   IsVisible="{Binding !HasPrinters}" />
+
+        <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto" >
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Stampante" VerticalAlignment="Center" />
+            <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,4"
+                      HorizontalAlignment="Stretch"
+                      ItemsSource="{Binding Printers}"
+                      SelectedItem="{Binding SelectedPrinter}" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Copie" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Row="1" Grid.Column="1" Margin="0,4"
+                           Minimum="1" Maximum="999" Increment="1"
+                           FormatString="0"
+                           Value="{Binding Copies}" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Intervallo" VerticalAlignment="Center" />
+            <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,4" Spacing="2">
+                <TextBox Text="{Binding RangeText}" Watermark="tutti i fogli (es. 1-3, 5)" />
+                <TextBlock Text="Intervallo non valido."
+                           FontSize="11" Foreground="#CC0000"
+                           IsVisible="{Binding !RangeIsValid}" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Fronte/retro" VerticalAlignment="Center" />
+            <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,4"
+                      HorizontalAlignment="Stretch"
+                      ItemsSource="{Binding Duplexes}"
+                      SelectedItem="{Binding SelectedDuplex}" />
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Annulla" Click="OnCancel" />
+            <Button Content="Stampa" Click="OnConfirm" IsDefault="True"
+                    IsEnabled="{Binding CanConfirm}" />
+        </StackPanel>
+    </StackPanel>
+</Window>

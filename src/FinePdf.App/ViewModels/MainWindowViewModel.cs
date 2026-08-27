@@ -21,6 +21,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ISheetRenderService _renderer;
     private readonly IPdfComposer _composer;
     private readonly IFileDialogService _dialogs;
+    private readonly IPrintService _printService;
+    private readonly IPrintDialogService _printDialogs;
 
     private readonly Composition _composition = new();
     private readonly UndoRedoStack _undo = new();
@@ -55,13 +57,17 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IPdfDocumentService documents,
         ISheetRenderService renderer,
         IPdfComposer composer,
-        IFileDialogService dialogs)
+        IFileDialogService dialogs,
+        IPrintService printService,
+        IPrintDialogService printDialogs)
     {
         _folder = folder;
         _documents = documents;
         _renderer = renderer;
         _composer = composer;
         _dialogs = dialogs;
+        _printService = printService;
+        _printDialogs = printDialogs;
 
         _undo.Changed += (_, _) => RefreshCommandState();
         _folder.FilesChanged += OnFolderFilesChanged;
@@ -332,6 +338,44 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(HasSheets))]
     private Task SaveAsAsync() => PickAndSaveAsync();
 
+    [RelayCommand(CanExecute = nameof(HasSheets))]
+    private async Task PrintAsync()
+    {
+        IReadOnlyList<PrinterInfo> printers;
+        try
+        {
+            printers = await Task.Run(_printService.GetPrinters);
+        }
+        catch (PrintException ex)
+        {
+            SetStatus($"Stampa non disponibile: {ex.Message}");
+            return;
+        }
+
+        if (printers.Count == 0)
+        {
+            SetStatus("Nessuna stampante trovata.");
+            return;
+        }
+
+        PrintOptions? options = await _printDialogs.RequestAsync(printers);
+        if (options is null)
+        {
+            return;
+        }
+
+        try
+        {
+            SetStatus($"Invio a «{options.PrinterName}»…");
+            await Task.Run(() => _printService.Print(_composition, options));
+            SetStatus($"Inviato a «{options.PrinterName}» ({options.Copies} copia/e).");
+        }
+        catch (PrintException ex)
+        {
+            SetStatus($"Stampa non riuscita: {ex.Message}");
+        }
+    }
+
     private async Task PickAndSaveAsync()
     {
         string? path = await _dialogs.PickSavePdfAsync("documento.pdf", FolderPath);
@@ -584,6 +628,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         MoveDownCommand.NotifyCanExecuteChanged();
         SaveCommand.NotifyCanExecuteChanged();
         SaveAsCommand.NotifyCanExecuteChanged();
+        PrintCommand.NotifyCanExecuteChanged();
     }
 
     private void SetStatus(string text) => StatusText = text;

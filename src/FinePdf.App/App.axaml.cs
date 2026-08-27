@@ -23,13 +23,18 @@ public partial class App : Application
         {
             var window = new MainWindow();
             var dialogs = new FileDialogService(() => window);
+            var composer = new PdfComposer();
+            var printService = PrintServiceFactory.Create(new ProcessRunner(), composer);
+            var printDialogs = new PrintDialogService(() => window);
 
             var viewModel = new MainWindowViewModel(
                 new FolderSourceService(),
                 new PdfSharpDocumentService(),
                 new SkiaSheetRenderService(),
-                new PdfComposer(),
-                dialogs);
+                composer,
+                dialogs,
+                printService,
+                printDialogs);
 
             window.DataContext = viewModel;
             window.Closed += (_, _) => viewModel.Dispose();

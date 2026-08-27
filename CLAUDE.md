@@ -62,21 +62,32 @@ Finestra a **due pannelli**:
 Non usare **iText** (AGPL/commerciale) né **FluentAssertions ≥ 8** (licenza a pagamento).
 PdfSharp copre tutte le operazioni richieste.
 
-`FinePdf.Core` passerà a multi-target `net8.0;net8.0-windows` in M5 per la stampa GDI su Windows.
+`FinePdf.Core` e `FinePdf.App` scelgono il TFM in base al SO (condizione `'$(OS)' == 'Windows_NT'`):
+su Windows `FinePdf.Core` è multi-target `net8.0;net8.0-windows` e `FinePdf.App` è `net8.0-windows`
+(stampa GDI, `WindowsPrintService` compilato solo con `#if WINDOWS`); altrove entrambi restano
+single-target `net8.0`, così `dotnet run`/`dotnet test` non richiedono `-f`. Il `WindowsPrintService`
+non viene compilato su Linux: verificarlo su un runner Windows (CI).
 
 ## Struttura
 
 ```
 src/FinePdf.Core            libreria senza dipendenze UI
   Models/                   Composition, Sheet, Placement, SourceDocument/SourcePage,
-                            PaperSize, PageOrientation, FitMode, RotationDegrees
+                            PaperSize, PageOrientation, FitMode, RotationDegrees, NUpOrder,
+                            PrintOptions, PageRange, DuplexMode
   Layout/                   Rect, PlacedContent, SheetLayout (matematica di imposizione condivisa)
   Services/                 IPdfDocumentService/PdfSharpDocumentService,
                             IFolderSourceService/FolderSourceService,
-                            IPdfComposer/PdfComposer
-  Operations/               IUndoableAction, IUndoRedoStack/UndoRedoStack,
-                            Actions/ (AddFilePages, MoveSheet, DeleteSheets)
-  PdfLoadException.cs
+                            IPdfComposer/PdfComposer,
+                            ISheetRenderService/SkiaSheetRenderService,
+                            IProcessRunner/ProcessRunner,
+                            IPrintService + PrintServiceFactory
+                              (LinuxCupsPrintService, WindowsPrintService [net8.0-windows])
+  Operations/               IUndoableAction, IUndoRedoStack/UndoRedoStack, CompositeAction,
+                            Actions/ (AddFilePages, MoveSheet, DeleteSheets, RotateSheet,
+                            MergeSheets, NUp, SetNUpOrder, InsertBlankSheet, SetSheetFitMode,
+                            SetDefaultFitMode, SetPaper)
+  PdfLoadException.cs, PrintException.cs
 src/FinePdf.App             app Avalonia (MVVM): ViewModels, Views, Services UI
 tests/FinePdf.Core.Tests    unit test xUnit (PDF di prova generati a runtime, TestSupport/)
 ```
@@ -163,5 +174,5 @@ Piano completo e milestone: `~/.claude/plans/ciao-questo-e-un-warm-hejlsberg.md`
 - [x] M2 — Operazioni `RotateSheet`, `MergeSheets`, `InsertBlankSheet`, `SetSheetFitMode`, `SetDefaultFitMode`, `SetPaper` + undo/redo — 45 test verdi in totale
 - [x] M3 — Shell UI Avalonia a due pannelli: elenco sorgenti (watch cartella, doppio click) + anteprima di stampa (`SkiaSheetRenderService`, menu contestuale, toolbar formato/fit, undo/redo, avviso modifiche non salvate alla chiusura). Drag&drop rimandato a M4.
 - [x] M4 — Rifinitura anteprima: N-up 2/4 con ordine righe/colonne (`NUpAction`, `SetNUpOrderAction`, `Sheet.NUpOrder`, `NUpOrder`), `FitMode` per foglio nel menu contestuale, comandi selezione (tutti/nessuno), scorciatoie da tastiera, drag & drop riordino fogli — 53 test verdi
-- [ ] M5 — Stampa (CUPS Linux / GDI Windows) — WYSIWYG rispetto all'anteprima
+- [x] M5 — Stampa: `IProcessRunner`/`ProcessRunner`, `IPrintService` + `PrintServiceFactory`, `LinuxCupsPrintService` (`lpstat -e`/`lp`, testato con `FakeProcessRunner`), `WindowsPrintService` GDI (`net8.0-windows`, non compilato su Linux), `PrintException`, `PageRange`/`PrintOptions`/`DuplexMode`, dialog di stampa interno (stampante, copie, intervallo, fronte/retro) + toolbar/Ctrl+P — 70 test verdi
 - [ ] M6 — Rifinitura + packaging

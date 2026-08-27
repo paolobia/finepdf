@@ -15,6 +15,7 @@
         <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
         <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+        <KeyBinding Gesture="Ctrl+P" Command="{Binding PrintCommand}" />
         <KeyBinding Gesture="Ctrl+A" Command="{Binding SelectAllSheetsCommand}" />
         <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}" />
         <KeyBinding Gesture="Alt+Up" Command="{Binding MoveUpCommand}" />
@@ -49,6 +50,7 @@
                 <Rectangle Width="1" Margin="4,2" Fill="#33000000" />
                 <Button Content="Salva" Command="{Binding SaveCommand}" />
                 <Button Content="Salva con nome…" Command="{Binding SaveAsCommand}" />
+                <Button Content="Stampa…" Command="{Binding PrintCommand}" />
             </StackPanel>
         </Border>
 
