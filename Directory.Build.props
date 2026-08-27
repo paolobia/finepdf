@@ -14,6 +14,10 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <InvariantGlobalization>true</InvariantGlobalization>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Product>FinePdf</Product>
+    <Version>1.0.0</Version>
+    <Authors>FinePdf</Authors>
+    <Copyright>© FinePdf</Copyright>
   </PropertyGroup>
 
   <!-- I progetti di test possono avere warning non bloccanti. -->

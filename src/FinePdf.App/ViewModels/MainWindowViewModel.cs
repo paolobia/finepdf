@@ -31,6 +31,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly SemaphoreSlim _renderGate = new(3);
 
     private bool _suppressSettingApply;
+    private bool _limitationsDismissed;
     private string? _lastSavePath;
     private NUpOrder _nUpOrder = NUpOrder.RowMajor;
 
@@ -42,6 +43,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private bool _hasUnsavedChanges;
+
+    [ObservableProperty]
+    private bool _isLimitationsNoticeOpen;
 
     [ObservableProperty]
     private PaperSize _selectedPaperSize = PaperSize.A4;
@@ -316,6 +320,13 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
+    private void DismissLimitations()
+    {
+        _limitationsDismissed = true;
+        IsLimitationsNoticeOpen = false;
+    }
+
+    [RelayCommand]
     private void InsertBlank()
     {
         List<int> indices = SelectedIndices();
@@ -431,6 +442,11 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SyncSheets();
         RefreshCommandState();
         OnPropertyChanged(nameof(SelectionSummary));
+
+        if (!_limitationsDismissed && _composition.Sheets.Count > 0)
+        {
+            IsLimitationsNoticeOpen = true;
+        }
         if (EnableAutoRender)
         {
             _ = RenderAllAsync();

@@ -1,12 +1,22 @@
 # FinePdf
 
 Editor PDF **desktop cross-platform (Windows + Linux)** in C# / .NET 8: unione, riordino,
-cancellazione, imposizione "due pagine in una" (N-up), rotazione e stampa delle pagine.
+cancellazione, imposizione "N pagine in una" (N-up), rotazione e stampa delle pagine.
 
-## Requisiti di sviluppo
+## Funzionalità
 
-- .NET SDK 8.0+
-- Template Avalonia (`dotnet new install Avalonia.Templates`) solo per rigenerare scaffold
+- **Unione**: doppio click su un PDF nell'elenco sorgenti → accoda tutte le sue pagine.
+- **Riordino**: drag & drop nell'anteprima, pulsanti *Sposta su/giù*, `Alt+↑/↓`.
+- **Cancellazione**: selezione singola o multipla, menu contestuale o `Canc`.
+- **N-up**: seleziona più fogli → *Due / Quattro pagine per foglio*; ordine di riempimento
+  per righe o per colonne; oppure *Unisci in un unico foglio*.
+- **Rotazione**: 90° oraria / antioraria / 180° (`Ctrl+←/→`).
+- **Pagina vuota**: dal menu contestuale, eredita formato e orientazione del documento.
+- **Adattamento** (`FitMode`): predefinito di documento + override per foglio
+  (adatta / dimensione reale / riempi).
+- **Stampa**: il pannello destro **è** l'anteprima di stampa; dialog interno con stampante,
+  copie, intervallo (`1-3, 5`) e fronte/retro. Linux via CUPS (`lp`/`lpstat`), Windows via GDI.
+- **Undo/redo** completo; avviso *modifiche non salvate* alla chiusura.
 
 ## Avvio rapido
 
@@ -16,20 +26,24 @@ dotnet test
 dotnet run --project src/FinePdf.App
 ```
 
+Richiede **.NET SDK 8.0.x**. Su Linux/macOS i progetti sono single-target `net8.0`; su Windows
+`FinePdf.App` passa a `net8.0-windows` per la stampa GDI (`WindowsPrintService`).
+
 ## Struttura
 
 | Progetto | Ruolo |
 |---|---|
 | `src/FinePdf.Core` | logica PDF senza dipendenze UI (modelli, servizi, operazioni undoable) |
 | `src/FinePdf.App` | applicazione Avalonia (MVVM) |
-| `tests/FinePdf.Core.Tests` | unit test xUnit |
+| `tests/FinePdf.Core.Tests` | unit test xUnit (PDF di prova generati a runtime) |
 
-Dettagli architetturali e convenzioni: [`CLAUDE.md`](CLAUDE.md).
-Piano di lavoro e milestone: `~/.claude/plans/ciao-questo-e-un-warm-hejlsberg.md`.
+Dettagli architetturali, stack bloccato e convenzioni: [`CLAUDE.md`](CLAUDE.md).
 
 ## Pubblicazione
 
 ```bash
-dotnet publish src/FinePdf.App -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true
-dotnet publish src/FinePdf.App -c Release -r win-x64   --self-contained -p:PublishSingleFile=true
+./build/publish.sh linux-x64      # -> artifacts/linux-x64
+./build/publish.ps1 -Rid win-x64  # su Windows -> artifacts/win-x64 (stampa GDI)
 ```
+
+Entrambi eseguono prima `dotnet test`, poi `dotnet publish` self-contained a singolo file.

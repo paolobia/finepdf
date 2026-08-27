@@ -167,7 +167,7 @@ motore di layout.
 
 ## Stato di avanzamento
 
-Piano completo e milestone: `~/.claude/plans/ciao-questo-e-un-warm-hejlsberg.md`.
+Milestone e stato: elenco qui sotto.
 
 - [x] M0 — Scaffolding solution, `Directory.Build.props`, `.editorconfig`, `git init` — build + test verdi
 - [x] M1 — Modello (`Composition`/`Sheet`/`Placement`/`SourceDocument`), `FolderSourceService`, `PdfSharpDocumentService`, `PdfComposer` (fit + 1/2/4-up), `UndoRedoStack` + `AddFilePages`/`MoveSheet`/`DeleteSheets`
@@ -175,4 +175,4 @@ Piano completo e milestone: `~/.claude/plans/ciao-questo-e-un-warm-hejlsberg.md`
 - [x] M3 — Shell UI Avalonia a due pannelli: elenco sorgenti (watch cartella, doppio click) + anteprima di stampa (`SkiaSheetRenderService`, menu contestuale, toolbar formato/fit, undo/redo, avviso modifiche non salvate alla chiusura). Drag&drop rimandato a M4.
 - [x] M4 — Rifinitura anteprima: N-up 2/4 con ordine righe/colonne (`NUpAction`, `SetNUpOrderAction`, `Sheet.NUpOrder`, `NUpOrder`), `FitMode` per foglio nel menu contestuale, comandi selezione (tutti/nessuno), scorciatoie da tastiera, drag & drop riordino fogli — 53 test verdi
 - [x] M5 — Stampa: `IProcessRunner`/`ProcessRunner`, `IPrintService` + `PrintServiceFactory`, `LinuxCupsPrintService` (`lpstat -e`/`lp`, testato con `FakeProcessRunner`), `WindowsPrintService` GDI (`net8.0-windows`, non compilato su Linux), `PrintException`, `PageRange`/`PrintOptions`/`DuplexMode`, dialog di stampa interno (stampante, copie, intervallo, fronte/retro) + toolbar/Ctrl+P — 70 test verdi
-- [ ] M6 — Rifinitura + packaging
+- [x] M6 — Rifinitura + packaging: avviso limitazioni note nella UI (dismissibile), scorciatoie da tastiera, metadati versione in `Directory.Build.props`, script `build/publish.sh`/`publish.ps1`, CI GitHub Actions (`ubuntu` build+test, `windows` build+test net8.0-windows), README aggiornato

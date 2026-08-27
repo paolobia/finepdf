@@ -22,7 +22,7 @@
         <KeyBinding Gesture="Alt+Down" Command="{Binding MoveDownCommand}" />
     </Window.KeyBindings>
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <!-- Toolbar: impostazioni di documento + comandi globali -->
         <Border Grid.Row="0" Padding="8" BorderThickness="0,0,0,1" BorderBrush="#22000000">
@@ -54,8 +54,20 @@
             </StackPanel>
         </Border>
 
+        <!-- Avviso limitazioni note della ricomposizione con PdfSharp -->
+        <Border Grid.Row="1" Background="#FFF4D6" BorderBrush="#E0C070" BorderThickness="0,0,0,1"
+                Padding="8,6" IsVisible="{Binding IsLimitationsNoticeOpen}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Nascondi" Padding="8,2"
+                        Background="Transparent" BorderThickness="0"
+                        Command="{Binding DismissLimitationsCommand}" />
+                <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Foreground="#5A4A20"
+                           Text="Salvando e stampando, campi modulo, annotazioni, segnalibri e link interni ai PDF di origine possono andare persi (limite noto della v1)." />
+            </DockPanel>
+        </Border>
+
         <!-- Corpo: due pannelli -->
-        <Grid Grid.Row="1" ColumnDefinitions="280,4,*">
+        <Grid Grid.Row="2" ColumnDefinitions="280,4,*">
 
             <!-- Sinistra: elenco sorgenti -->
             <DockPanel Grid.Column="0" Margin="8">
@@ -146,7 +158,7 @@
         </Grid>
 
         <!-- Barra di stato -->
-        <Border Grid.Row="2" Padding="8,4" BorderThickness="0,1,0,0" BorderBrush="#22000000">
+        <Border Grid.Row="3" Padding="8,4" BorderThickness="0,1,0,0" BorderBrush="#22000000">
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="●" Foreground="#CC8800"
                            IsVisible="{Binding HasUnsavedChanges}"
