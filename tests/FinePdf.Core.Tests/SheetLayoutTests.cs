@@ -49,6 +49,16 @@ public class SheetLayoutTests
     }
 
     [Fact]
+    public void CellFor_FourPlacements_ColumnMajor_FillsTopToBottomFirst()
+    {
+        // 2x2 grid, column-major: index 1 is the bottom-left cell, index 2 the top-right.
+        Assert.Equal(new Rect(0, 0, 300, 400), SheetLayout.CellFor(4, 0, 600, 800, NUpOrder.ColumnMajor));
+        Assert.Equal(new Rect(0, 400, 300, 400), SheetLayout.CellFor(4, 1, 600, 800, NUpOrder.ColumnMajor));
+        Assert.Equal(new Rect(300, 0, 300, 400), SheetLayout.CellFor(4, 2, 600, 800, NUpOrder.ColumnMajor));
+        Assert.Equal(new Rect(300, 400, 300, 400), SheetLayout.CellFor(4, 3, 600, 800, NUpOrder.ColumnMajor));
+    }
+
+    [Fact]
     public void Place_Fit_ScalesToFitAndCentres()
     {
         var cell = new Rect(0, 0, 300, 300);

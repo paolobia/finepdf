@@ -85,7 +85,7 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
             Placement placement = sheet.Placements[i];
             SourcePage sourcePage = placement.Page;
 
-            Rect cell = SheetLayout.CellFor(placementCount, i, sheetWidthPt, sheetHeightPt);
+            Rect cell = SheetLayout.CellFor(placementCount, i, sheetWidthPt, sheetHeightPt, sheet.NUpOrder);
             PlacedContent placed = SheetLayout.Place(
                 cell, sourcePage.WidthPoints, sourcePage.HeightPoints, placement.Rotation.Value, fit);
 
@@ -164,7 +164,8 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
         sb.Append(width.ToString("F1", CultureInfo.InvariantCulture)).Append('x')
           .Append(height.ToString("F1", CultureInfo.InvariantCulture)).Append('|')
           .Append(pixelWidth).Append('|')
-          .Append(sheet.EffectiveFitMode(composition)).Append('|');
+          .Append(sheet.EffectiveFitMode(composition)).Append('|')
+          .Append(sheet.NUpOrder).Append('|');
 
         foreach (Placement placement in sheet.Placements)
         {

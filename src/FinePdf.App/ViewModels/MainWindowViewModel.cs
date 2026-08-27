@@ -30,6 +30,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private bool _suppressSettingApply;
     private string? _lastSavePath;
+    private NUpOrder _nUpOrder = NUpOrder.RowMajor;
 
     [ObservableProperty]
     private string _folderPath = string.Empty;
@@ -201,6 +202,93 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    [RelayCommand(CanExecute = nameof(CanMerge))]
+    private void NUp2() => ApplyNUp(2);
+
+    [RelayCommand(CanExecute = nameof(CanMerge))]
+    private void NUp4() => ApplyNUp(4);
+
+    private void ApplyNUp(int perSheet)
+    {
+        List<int> indices = SelectedIndices();
+        if (indices.Count >= 2)
+        {
+            Apply(new NUpAction(_composition, indices, perSheet, _nUpOrder));
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasNUpSelection))]
+    private void NUpOrderByRows() => SetNUpOrder(NUpOrder.RowMajor);
+
+    [RelayCommand(CanExecute = nameof(HasNUpSelection))]
+    private void NUpOrderByColumns() => SetNUpOrder(NUpOrder.ColumnMajor);
+
+    private void SetNUpOrder(NUpOrder order)
+    {
+        _nUpOrder = order;
+        List<Sheet> targets = SelectedIndices()
+            .Select(i => _composition.Sheets[i])
+            .Where(s => s.Placements.Count > 1)
+            .ToList();
+
+        if (targets.Count > 0)
+        {
+            Apply(new SetNUpOrderAction(targets, order));
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void SheetFitDefault() => SetSheetFit(null);
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void SheetFitFit() => SetSheetFit(FitMode.Fit);
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void SheetFitActualSize() => SetSheetFit(FitMode.ActualSize);
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void SheetFitFill() => SetSheetFit(FitMode.Fill);
+
+    private void SetSheetFit(FitMode? mode)
+    {
+        List<Sheet> targets = SelectedIndices().Select(i => _composition.Sheets[i]).ToList();
+        if (targets.Count > 0)
+        {
+            Apply(new SetSheetFitModeAction(targets, mode));
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSheets))]
+    private void SelectAllSheets()
+    {
+        foreach (SheetViewModel sheet in Sheets)
+        {
+            sheet.IsSelected = true;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void ClearSelection()
+    {
+        foreach (SheetViewModel sheet in Sheets)
+        {
+            sheet.IsSelected = false;
+        }
+    }
+
+    /// <summary>Drag &amp; drop reorder from the preview: move the sheet at <paramref name="fromIndex"/> to <paramref name="toIndex"/>.</summary>
+    public void MoveSheetByDrag(int fromIndex, int toIndex)
+    {
+        if (fromIndex < 0 || fromIndex >= _composition.Sheets.Count ||
+            toIndex < 0 || toIndex >= _composition.Sheets.Count ||
+            fromIndex == toIndex)
+        {
+            return;
+        }
+
+        Apply(new MoveSheetAction(_composition, fromIndex, toIndex));
+    }
+
     [RelayCommand(CanExecute = nameof(CanMoveUp))]
     private void MoveUp()
     {
@@ -298,6 +386,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SyncSettingsFromComposition();
         SyncSheets();
         RefreshCommandState();
+        OnPropertyChanged(nameof(SelectionSummary));
         if (EnableAutoRender)
         {
             _ = RenderAllAsync();
@@ -414,7 +503,20 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         });
     }
 
-    private void OnSheetSelectionChanged(object? sender, EventArgs e) => RefreshCommandState();
+    public string SelectionSummary
+    {
+        get
+        {
+            int count = Sheets.Count(s => s.IsSelected);
+            return count == 0 ? $"{Sheets.Count} fogli" : $"{count}/{Sheets.Count} fogli selezionati";
+        }
+    }
+
+    private void OnSheetSelectionChanged(object? sender, EventArgs e)
+    {
+        RefreshCommandState();
+        OnPropertyChanged(nameof(SelectionSummary));
+    }
 
     private void SyncSettingsFromComposition()
     {
@@ -468,6 +570,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         RotateHalfTurnCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
         MergeSelectedCommand.NotifyCanExecuteChanged();
+        NUp2Command.NotifyCanExecuteChanged();
+        NUp4Command.NotifyCanExecuteChanged();
+        NUpOrderByRowsCommand.NotifyCanExecuteChanged();
+        NUpOrderByColumnsCommand.NotifyCanExecuteChanged();
+        SheetFitDefaultCommand.NotifyCanExecuteChanged();
+        SheetFitFitCommand.NotifyCanExecuteChanged();
+        SheetFitActualSizeCommand.NotifyCanExecuteChanged();
+        SheetFitFillCommand.NotifyCanExecuteChanged();
+        SelectAllSheetsCommand.NotifyCanExecuteChanged();
+        ClearSelectionCommand.NotifyCanExecuteChanged();
         MoveUpCommand.NotifyCanExecuteChanged();
         MoveDownCommand.NotifyCanExecuteChanged();
         SaveCommand.NotifyCanExecuteChanged();
@@ -481,6 +593,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private bool HasSelection() => Sheets.Any(s => s.IsSelected);
 
     private bool CanMerge() => Sheets.Count(s => s.IsSelected) >= 2;
+
+    private bool HasNUpSelection() =>
+        SelectedIndices().Any(i => i < _composition.Sheets.Count && _composition.Sheets[i].Placements.Count > 1);
 
     private bool CanMoveUp() => SingleSelectedIndex() > 0;
 

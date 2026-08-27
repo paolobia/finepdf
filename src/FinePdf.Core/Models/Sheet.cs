@@ -39,6 +39,9 @@ public sealed class Sheet
     /// <summary>When set, overrides <see cref="Composition.DefaultFitMode"/> for this sheet.</summary>
     public FitMode? FitModeOverride { get; set; }
 
+    /// <summary>Order in which N-up cells are filled. Irrelevant for 0/1 placements.</summary>
+    public NUpOrder NUpOrder { get; set; } = NUpOrder.RowMajor;
+
     public FitMode EffectiveFitMode(Composition composition)
     {
         ArgumentNullException.ThrowIfNull(composition);

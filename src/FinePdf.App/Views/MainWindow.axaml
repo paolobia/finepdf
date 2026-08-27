@@ -10,6 +10,17 @@
         Width="1000" Height="640"
         Title="FinePdf">
 
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+        <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+        <KeyBinding Gesture="Ctrl+A" Command="{Binding SelectAllSheetsCommand}" />
+        <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}" />
+        <KeyBinding Gesture="Alt+Up" Command="{Binding MoveUpCommand}" />
+        <KeyBinding Gesture="Alt+Down" Command="{Binding MoveDownCommand}" />
+    </Window.KeyBindings>
+
     <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- Toolbar: impostazioni di documento + comandi globali -->
@@ -72,7 +83,8 @@
                 <ListBox Name="SheetList"
                          ItemsSource="{Binding Sheets}"
                          SelectionMode="Multiple"
-                         Background="#11000000">
+                         Background="#11000000"
+                         DragDrop.AllowDrop="True">
                     <ListBox.Styles>
                         <Style Selector="ListBoxItem" x:DataType="vm:SheetViewModel">
                             <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
@@ -80,17 +92,32 @@
                     </ListBox.Styles>
                     <ListBox.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="Ruota 90° antioraria" Command="{Binding RotateLeftCommand}" />
-                            <MenuItem Header="Ruota 90° oraria" Command="{Binding RotateRightCommand}" />
+                            <MenuItem Header="Ruota 90° antioraria" Command="{Binding RotateLeftCommand}" InputGesture="Ctrl+Left" />
+                            <MenuItem Header="Ruota 90° oraria" Command="{Binding RotateRightCommand}" InputGesture="Ctrl+Right" />
                             <MenuItem Header="Ruota 180°" Command="{Binding RotateHalfTurnCommand}" />
                             <Separator />
-                            <MenuItem Header="Unisci pagine selezionate" Command="{Binding MergeSelectedCommand}" />
+                            <MenuItem Header="Unisci in un unico foglio" Command="{Binding MergeSelectedCommand}" />
+                            <MenuItem Header="Due pagine per foglio" Command="{Binding NUp2Command}" />
+                            <MenuItem Header="Quattro pagine per foglio" Command="{Binding NUp4Command}" />
+                            <MenuItem Header="Ordine di riempimento">
+                                <MenuItem Header="Per righe" Command="{Binding NUpOrderByRowsCommand}" />
+                                <MenuItem Header="Per colonne" Command="{Binding NUpOrderByColumnsCommand}" />
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="Adattamento del foglio">
+                                <MenuItem Header="Predefinito del documento" Command="{Binding SheetFitDefaultCommand}" />
+                                <MenuItem Header="Adatta mantenendo le proporzioni" Command="{Binding SheetFitFitCommand}" />
+                                <MenuItem Header="Dimensione reale centrata" Command="{Binding SheetFitActualSizeCommand}" />
+                                <MenuItem Header="Riempi il foglio" Command="{Binding SheetFitFillCommand}" />
+                            </MenuItem>
                             <MenuItem Header="Inserisci pagina vuota" Command="{Binding InsertBlankCommand}" />
                             <Separator />
-                            <MenuItem Header="Sposta su" Command="{Binding MoveUpCommand}" />
-                            <MenuItem Header="Sposta giù" Command="{Binding MoveDownCommand}" />
+                            <MenuItem Header="Sposta su" Command="{Binding MoveUpCommand}" InputGesture="Alt+Up" />
+                            <MenuItem Header="Sposta giù" Command="{Binding MoveDownCommand}" InputGesture="Alt+Down" />
+                            <MenuItem Header="Seleziona tutti i fogli" Command="{Binding SelectAllSheetsCommand}" InputGesture="Ctrl+A" />
+                            <MenuItem Header="Annulla selezione" Command="{Binding ClearSelectionCommand}" />
                             <Separator />
-                            <MenuItem Header="Cancella" Command="{Binding DeleteSelectedCommand}" />
+                            <MenuItem Header="Cancella" Command="{Binding DeleteSelectedCommand}" InputGesture="Delete" />
                         </ContextMenu>
                     </ListBox.ContextMenu>
                     <ListBox.ItemTemplate>
@@ -123,6 +150,7 @@
                            IsVisible="{Binding HasUnsavedChanges}"
                            ToolTip.Tip="Modifiche non salvate" />
                 <TextBlock Text="{Binding StatusText}" Foreground="#99000000" />
+                <TextBlock Text="{Binding SelectionSummary}" Foreground="#66000000" />
             </StackPanel>
         </Border>
     </Grid>

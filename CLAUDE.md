@@ -131,8 +131,9 @@ motore di layout.
 - **`IUndoRedoStack`** — ogni operazione è un `IUndoableAction` (undo/redo completo):
   `AddFilePagesAction`, `MoveSheetAction`, `DeleteSheetsAction`, `RotateSheetAction`
   (tutti i placement del foglio, o uno solo), `MergeSheetsAction` (unisci i fogli selezionati
-  in uno), `InsertBlankSheetAction`, `SetSheetFitModeAction`, `SetDefaultFitModeAction`,
-  `SetPaperAction`.
+  in uno), `NUpAction` (2/4 pagine per foglio, ri-suddivide la selezione in più fogli N-up),
+  `SetNUpOrderAction` (ordine di riempimento righe/colonne), `InsertBlankSheetAction`,
+  `SetSheetFitModeAction`, `SetDefaultFitModeAction`, `SetPaperAction`.
 
 ## Convenzioni
 
@@ -161,6 +162,6 @@ Piano completo e milestone: `~/.claude/plans/ciao-questo-e-un-warm-hejlsberg.md`
 - [x] M1 — Modello (`Composition`/`Sheet`/`Placement`/`SourceDocument`), `FolderSourceService`, `PdfSharpDocumentService`, `PdfComposer` (fit + 1/2/4-up), `UndoRedoStack` + `AddFilePages`/`MoveSheet`/`DeleteSheets`
 - [x] M2 — Operazioni `RotateSheet`, `MergeSheets`, `InsertBlankSheet`, `SetSheetFitMode`, `SetDefaultFitMode`, `SetPaper` + undo/redo — 45 test verdi in totale
 - [x] M3 — Shell UI Avalonia a due pannelli: elenco sorgenti (watch cartella, doppio click) + anteprima di stampa (`SkiaSheetRenderService`, menu contestuale, toolbar formato/fit, undo/redo, avviso modifiche non salvate alla chiusura). Drag&drop rimandato a M4.
-- [ ] M4 — Rifinitura anteprima: opzioni N-up (2/4, ordine), UX selezione, `FitMode` per foglio
+- [x] M4 — Rifinitura anteprima: N-up 2/4 con ordine righe/colonne (`NUpAction`, `SetNUpOrderAction`, `Sheet.NUpOrder`, `NUpOrder`), `FitMode` per foglio nel menu contestuale, comandi selezione (tutti/nessuno), scorciatoie da tastiera, drag & drop riordino fogli — 53 test verdi
 - [ ] M5 — Stampa (CUPS Linux / GDI Windows) — WYSIWYG rispetto all'anteprima
 - [ ] M6 — Rifinitura + packaging

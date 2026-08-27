@@ -11,9 +11,16 @@ public static class SheetLayout
     /// <summary>
     /// The rectangle a placement occupies on the sheet. One placement fills the sheet;
     /// two split it along the sheet's long axis; more are arranged in a near-square grid
-    /// (four → 2×2), filled left-to-right, top-to-bottom.
+    /// (four → 2×2). <paramref name="order"/> decides whether the cells are filled
+    /// left-to-right then top-to-bottom (<see cref="NUpOrder.RowMajor"/>, the default) or
+    /// top-to-bottom then left-to-right (<see cref="NUpOrder.ColumnMajor"/>).
     /// </summary>
-    public static Rect CellFor(int placementCount, int index, double sheetWidth, double sheetHeight)
+    public static Rect CellFor(
+        int placementCount,
+        int index,
+        double sheetWidth,
+        double sheetHeight,
+        NUpOrder order = NUpOrder.RowMajor)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(placementCount, 1);
         ArgumentOutOfRangeException.ThrowIfNegative(index);
@@ -42,8 +49,19 @@ public static class SheetLayout
 
         double cellWidth = sheetWidth / columns;
         double cellHeight = sheetHeight / rows;
-        int column = index % columns;
-        int row = index / columns;
+        int column;
+        int row;
+        if (order == NUpOrder.ColumnMajor)
+        {
+            column = index / rows;
+            row = index % rows;
+        }
+        else
+        {
+            column = index % columns;
+            row = index / columns;
+        }
+
         return new Rect(column * cellWidth, row * cellHeight, cellWidth, cellHeight);
     }
 
