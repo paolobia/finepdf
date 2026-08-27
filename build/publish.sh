@@ -10,6 +10,13 @@ CONFIG="${2:-Release}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/artifacts/$RID"
 
+# Cross-compilando il pacchetto Windows da Linux serve forzare il TFM net8.0-windows
+# (stampa GDI). Su Windows non serve: il TFM è già net8.0-windows.
+EXTRA=()
+case "$RID" in
+  win-*) EXTRA+=(-p:WindowsTarget=true) ;;
+esac
+
 echo "==> dotnet test"
 dotnet test "$ROOT/FinePdf.sln" -c "$CONFIG" --nologo
 
@@ -19,6 +26,8 @@ dotnet publish "$ROOT/src/FinePdf.App/FinePdf.App.csproj" \
   --self-contained true \
   -p:PublishSingleFile=true \
   -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:EnableCompressionInSingleFile=true \
+  "${EXTRA[@]}" \
   -o "$OUT"
 
 echo "==> fatto: $OUT"

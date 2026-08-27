@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Su Windows si aggiunge il target net8.0-windows per la stampa GDI (WindowsPrintService).
-         Su Linux/macOS resta single-target net8.0, così `dotnet run`/`dotnet test` non richiedono `-f`. -->
-    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net8.0;net8.0-windows</TargetFrameworks>
-    <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net8.0</TargetFramework>
+    <!-- Su Windows (o passando -p:WindowsTarget=true, per cross-compilare il pacchetto Windows
+         da Linux) si aggiunge il target net8.0-windows per la stampa GDI (WindowsPrintService).
+         Altrimenti resta single-target net8.0, così `dotnet run`/`dotnet test` non richiedono `-f`. -->
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' or '$(WindowsTarget)' == 'true'">net8.0;net8.0-windows</TargetFrameworks>
+    <TargetFramework Condition="'$(OS)' != 'Windows_NT' and '$(WindowsTarget)' != 'true'">net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
