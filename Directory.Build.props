@@ -1,0 +1,24 @@
+<Project>
+  <!-- Impostazioni comuni a tutti i progetti della solution FinePdf. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Warning del compilatore (CSxxxx) bloccanti; i suggerimenti degli analizzatori
+         (CAxxxx / IDExxxx) restano warning, per non intralciare lo sviluppo. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <!-- Le API deprecate delle librerie native (SkiaSharp) restano warning, non errori. -->
+    <WarningsNotAsErrors>CS0618;CS0612;CS0672</WarningsNotAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- I progetti di test possono avere warning non bloccanti. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>
