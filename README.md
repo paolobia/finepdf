@@ -1,5 +1,7 @@
 # FinePdf
 
+🇮🇹 Italiano · [🇬🇧 English](README.en.md)
+
 Editor PDF **desktop cross-platform (Windows + Linux)** in C# / .NET 8: unione, riordino,
 cancellazione, imposizione "N pagine in una" (N-up), rotazione e stampa delle pagine.
 
@@ -47,3 +49,4 @@ Dettagli architetturali, stack bloccato e convenzioni: [`CLAUDE.md`](CLAUDE.md).
 ```
 
 Entrambi eseguono prima `dotnet test`, poi `dotnet publish` self-contained a singolo file.
+Gli eseguibili già compilati sono allegati alle [Release](../../releases) di GitHub.
