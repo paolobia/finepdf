@@ -96,6 +96,60 @@ public class NUpActionTests
     }
 
     [Fact]
+    public void NUp_TwoPerSheet_AutoOrientsPortraitPagesInLandscapeCells()
+    {
+        using var dir = new TempDir();
+        Composition composition = CompositionWith(dir, 4); // A4 portrait pages, A4 portrait sheet
+
+        new NUpAction(composition, [0, 1, 2, 3], perSheet: 2).Do();
+
+        // 2-up on a portrait sheet => stacked landscape cells => each portrait page rotated 90°.
+        Assert.All(
+            composition.Sheets.SelectMany(s => s.Placements),
+            p => Assert.Equal(90, p.Rotation.Value));
+    }
+
+    [Fact]
+    public void NUp_AutoOrientDisabled_LeavesRotationUntouched()
+    {
+        using var dir = new TempDir();
+        Composition composition = CompositionWith(dir, 4);
+
+        new NUpAction(composition, [0, 1, 2, 3], perSheet: 2, order: NUpOrder.RowMajor, autoOrient: false).Do();
+
+        Assert.All(
+            composition.Sheets.SelectMany(s => s.Placements),
+            p => Assert.Equal(0, p.Rotation.Value));
+    }
+
+    [Fact]
+    public void NUp_FourPerSheet_PortraitPagesKeepOrientation()
+    {
+        using var dir = new TempDir();
+        Composition composition = CompositionWith(dir, 4);
+
+        new NUpAction(composition, [0, 1, 2, 3], perSheet: 4).Do();
+
+        // 2x2 on a portrait sheet => portrait cells => portrait pages need no turn.
+        Assert.All(composition.Sheets[0].Placements, p => Assert.Equal(0, p.Rotation.Value));
+    }
+
+    [Fact]
+    public void FitOrientation_RotatesMismatchedPlacements_AndUndoes()
+    {
+        using var dir = new TempDir();
+        Composition composition = CompositionWith(dir, 2);
+        new MergeSheetsAction(composition, [0, 1]).Do(); // plain merge: no auto-orient
+
+        var action = new FitOrientationAction(composition, [composition.Sheets[0]]);
+        action.Do();
+        Assert.All(composition.Sheets[0].Placements, p => Assert.Equal(90, p.Rotation.Value));
+
+        action.Undo();
+        Assert.All(composition.Sheets[0].Placements, p => Assert.Equal(0, p.Rotation.Value));
+    }
+
+    [Fact]
     public void NUp_ThenCompose_ProducesExpectedPageCount()
     {
         using var dir = new TempDir();

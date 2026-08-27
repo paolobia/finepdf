@@ -7,7 +7,7 @@
         x:Class="FinePdf.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Width="1000" Height="640"
+        Width="1160" Height="680"
         Title="FinePdf">
 
     <Window.KeyBindings>
@@ -94,6 +94,40 @@
             <!-- Destra: anteprima di stampa -->
             <DockPanel Grid.Column="2" Margin="8">
                 <TextBlock DockPanel.Dock="Top" Text="Anteprima di stampa" FontWeight="Bold" Margin="0,0,0,6" />
+
+                <!-- Barra azioni sui fogli selezionati (stesse voci del menu contestuale) -->
+                <Border DockPanel.Dock="Top" Margin="0,0,0,6" Padding="4" CornerRadius="4" Background="#0C000000">
+                    <WrapPanel Orientation="Horizontal">
+                        <WrapPanel.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Padding" Value="8,4" />
+                                <Setter Property="Margin" Value="2" />
+                            </Style>
+                            <Style Selector="Separator">
+                                <Setter Property="Width" Value="1" />
+                                <Setter Property="Margin" Value="4,2" />
+                                <Setter Property="Background" Value="#22000000" />
+                            </Style>
+                        </WrapPanel.Styles>
+                        <Button Content="↺ 90°" ToolTip.Tip="Ruota 90° antioraria (Ctrl+←)" Command="{Binding RotateLeftCommand}" />
+                        <Button Content="↻ 90°" ToolTip.Tip="Ruota 90° oraria (Ctrl+→)" Command="{Binding RotateRightCommand}" />
+                        <Button Content="180°" ToolTip.Tip="Ruota 180°" Command="{Binding RotateHalfTurnCommand}" />
+                        <Button Content="Orienta" ToolTip.Tip="Adatta orientamento al foglio" Command="{Binding FitOrientationCommand}" />
+                        <Separator />
+                        <Button Content="2-up" ToolTip.Tip="Due pagine per foglio (ruota se conviene)" Command="{Binding NUp2Command}" />
+                        <Button Content="4-up" ToolTip.Tip="Quattro pagine per foglio" Command="{Binding NUp4Command}" />
+                        <Button Content="Unisci" ToolTip.Tip="Unisci in un unico foglio" Command="{Binding MergeSelectedCommand}" />
+                        <Button Content="Vuota" ToolTip.Tip="Inserisci pagina vuota" Command="{Binding InsertBlankCommand}" />
+                        <Separator />
+                        <Button Content="↑" ToolTip.Tip="Sposta su (Alt+↑)" Command="{Binding MoveUpCommand}" />
+                        <Button Content="↓" ToolTip.Tip="Sposta giù (Alt+↓)" Command="{Binding MoveDownCommand}" />
+                        <Separator />
+                        <Button Content="Tutti" ToolTip.Tip="Seleziona tutti i fogli (Ctrl+A)" Command="{Binding SelectAllSheetsCommand}" />
+                        <Button Content="Nessuno" ToolTip.Tip="Annulla selezione" Command="{Binding ClearSelectionCommand}" />
+                        <Button Content="Elimina" ToolTip.Tip="Elimina i fogli selezionati (Canc)" Command="{Binding DeleteSelectedCommand}" />
+                    </WrapPanel>
+                </Border>
+
                 <ListBox Name="SheetList"
                          ItemsSource="{Binding Sheets}"
                          SelectionMode="Multiple"
@@ -109,6 +143,7 @@
                             <MenuItem Header="Ruota 90° antioraria" Command="{Binding RotateLeftCommand}" InputGesture="Ctrl+Left" />
                             <MenuItem Header="Ruota 90° oraria" Command="{Binding RotateRightCommand}" InputGesture="Ctrl+Right" />
                             <MenuItem Header="Ruota 180°" Command="{Binding RotateHalfTurnCommand}" />
+                            <MenuItem Header="Adatta orientamento al foglio" Command="{Binding FitOrientationCommand}" />
                             <Separator />
                             <MenuItem Header="Unisci in un unico foglio" Command="{Binding MergeSelectedCommand}" />
                             <MenuItem Header="Due pagine per foglio" Command="{Binding NUp2Command}" />

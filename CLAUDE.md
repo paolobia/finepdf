@@ -142,8 +142,11 @@ motore di layout.
 - **`IUndoRedoStack`** — ogni operazione è un `IUndoableAction` (undo/redo completo):
   `AddFilePagesAction`, `MoveSheetAction`, `DeleteSheetsAction`, `RotateSheetAction`
   (tutti i placement del foglio, o uno solo), `MergeSheetsAction` (unisci i fogli selezionati
-  in uno), `NUpAction` (2/4 pagine per foglio, ri-suddivide la selezione in più fogli N-up),
-  `SetNUpOrderAction` (ordine di riempimento righe/colonne), `InsertBlankSheetAction`,
+  in uno), `NUpAction` (2/4 pagine per foglio, ri-suddivide la selezione in più fogli N-up; di
+  default `autoOrient` ruota ogni pagina di 90° quando riempie meglio la cella),
+  `SetNUpOrderAction` (ordine di riempimento righe/colonne),
+  `FitOrientationAction` (ruota di 90° i placement il cui orientamento non combacia con la cella,
+  via `SheetLayout.OrientationFixupDegrees`), `InsertBlankSheetAction`,
   `SetSheetFitModeAction`, `SetDefaultFitModeAction`, `SetPaperAction`.
 
 ## Convenzioni
@@ -176,3 +179,4 @@ Milestone e stato: elenco qui sotto.
 - [x] M4 — Rifinitura anteprima: N-up 2/4 con ordine righe/colonne (`NUpAction`, `SetNUpOrderAction`, `Sheet.NUpOrder`, `NUpOrder`), `FitMode` per foglio nel menu contestuale, comandi selezione (tutti/nessuno), scorciatoie da tastiera, drag & drop riordino fogli — 53 test verdi
 - [x] M5 — Stampa: `IProcessRunner`/`ProcessRunner`, `IPrintService` + `PrintServiceFactory`, `LinuxCupsPrintService` (`lpstat -e`/`lp`, testato con `FakeProcessRunner`), `WindowsPrintService` GDI (`net8.0-windows`, non compilato su Linux), `PrintException`, `PageRange`/`PrintOptions`/`DuplexMode`, dialog di stampa interno (stampante, copie, intervallo, fronte/retro) + toolbar/Ctrl+P — 70 test verdi
 - [x] M6 — Rifinitura + packaging: avviso limitazioni note nella UI (dismissibile), scorciatoie da tastiera, metadati versione in `Directory.Build.props`, script `build/publish.sh`/`publish.ps1`, CI GitHub Actions (`ubuntu` build+test, `windows` build+test net8.0-windows), README aggiornato
+- [x] M7 — Barra azioni sull'anteprima (stessi comandi del menu contestuale), auto-rotazione delle pagine in N-up (`NUpAction.autoOrient` + `FitOrientationAction`/comando "Adatta orientamento") — 74 test verdi

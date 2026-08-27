@@ -247,6 +247,20 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
+    [RelayCommand(CanExecute = nameof(HasContentSelection))]
+    private void FitOrientation()
+    {
+        List<Sheet> targets = SelectedIndices()
+            .Select(i => _composition.Sheets[i])
+            .Where(s => !s.IsBlank)
+            .ToList();
+
+        if (targets.Count > 0)
+        {
+            Apply(new FitOrientationAction(_composition, targets));
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void SheetFitDefault() => SetSheetFit(null);
 
@@ -634,6 +648,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         NUp4Command.NotifyCanExecuteChanged();
         NUpOrderByRowsCommand.NotifyCanExecuteChanged();
         NUpOrderByColumnsCommand.NotifyCanExecuteChanged();
+        FitOrientationCommand.NotifyCanExecuteChanged();
         SheetFitDefaultCommand.NotifyCanExecuteChanged();
         SheetFitFitCommand.NotifyCanExecuteChanged();
         SheetFitActualSizeCommand.NotifyCanExecuteChanged();
@@ -657,6 +672,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private bool HasNUpSelection() =>
         SelectedIndices().Any(i => i < _composition.Sheets.Count && _composition.Sheets[i].Placements.Count > 1);
+
+    private bool HasContentSelection() =>
+        SelectedIndices().Any(i => i < _composition.Sheets.Count && !_composition.Sheets[i].IsBlank);
 
     private bool CanMoveUp() => SingleSelectedIndex() > 0;
 

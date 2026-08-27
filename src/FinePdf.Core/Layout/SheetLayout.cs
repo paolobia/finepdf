@@ -66,6 +66,31 @@ public static class SheetLayout
     }
 
     /// <summary>
+    /// The extra clockwise quarter-turn (0 or 90) to add to <paramref name="currentRotation"/>
+    /// so the page's aspect orientation matches the cell's — a portrait page lands in a
+    /// portrait cell, a landscape page in a landscape cell. Used to auto-orient N-up
+    /// placements so they fill their cell instead of leaving wide margins.
+    /// </summary>
+    public static int OrientationFixupDegrees(
+        Rect cell,
+        double sourceWidth,
+        double sourceHeight,
+        int currentRotation)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceWidth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceHeight);
+
+        int rotation = ((currentRotation % 360) + 360) % 360;
+        bool quarterTurn = rotation is 90 or 270;
+        double width = quarterTurn ? sourceHeight : sourceWidth;
+        double height = quarterTurn ? sourceWidth : sourceHeight;
+
+        bool cellLandscape = cell.Width >= cell.Height;
+        bool pageLandscape = width >= height;
+        return cellLandscape == pageLandscape ? 0 : 90;
+    }
+
+    /// <summary>
     /// Places a source page of the given (unrotated) size into <paramref name="cell"/>,
     /// honouring <paramref name="rotationDegrees"/> (a multiple of 90) and <paramref name="fit"/>.
     /// </summary>
