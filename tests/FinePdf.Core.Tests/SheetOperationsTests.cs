@@ -157,6 +157,20 @@ public class SheetOperationsTests
     }
 
     [Fact]
+    public void SetMargins_ChangesMargins_AndUndoes()
+    {
+        var composition = new Composition();
+        Assert.True(composition.Margins.IsZero);
+
+        var action = new SetMarginsAction(composition, PageMargins.FromMillimeters(12));
+        action.Do();
+        Assert.Equal(12, composition.Margins.MaxEdgeMillimeters, 1);
+
+        action.Undo();
+        Assert.True(composition.Margins.IsZero);
+    }
+
+    [Fact]
     public void SetDefaultFitMode_ChangesDefault_AndUndoes()
     {
         var composition = new Composition();

@@ -15,7 +15,7 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Product>FinePdf</Product>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>FinePdf</Authors>
     <Copyright>© FinePdf</Copyright>
   </PropertyGroup>

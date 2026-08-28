@@ -76,7 +76,8 @@ public sealed class NUpAction : IUndoableAction
                 {
                     for (int i = 0; i < chunk.Count; i++)
                     {
-                        Layout.Rect cell = SheetLayout.CellFor(chunk.Count, i, sheetWidth, sheetHeight, _order);
+                        Layout.Rect cell = SheetLayout.CellFor(
+                            chunk.Count, i, sheetWidth, sheetHeight, _order, _composition.Margins);
                         int fix = SheetLayout.OrientationFixupDegrees(
                             cell, chunk[i].Page.WidthPoints, chunk[i].Page.HeightPoints, chunk[i].Rotation.Value);
                         if (fix != 0)

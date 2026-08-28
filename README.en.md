@@ -16,9 +16,24 @@ delete, "N pages on one sheet" (N-up) imposition, rotation and printing.
 - **Rotate**: 90° CW / CCW / 180° (`Ctrl+←/→`).
 - **Blank page**: from the context menu, inherits the document's size and orientation.
 - **Fit** (`FitMode`): document default + per-sheet override (fit / actual size / fill).
+- Uniform page **margins** (mm) applied to every sheet; dashed guide in the preview.
 - **Print**: the right pane *is* the print preview; an internal dialog covers printer, copies,
-  range (`1-3, 5`) and one/two-sided. Linux via CUPS (`lp`/`lpstat`), Windows via GDI.
+  range (`1-3, 5`), one/two-sided and free-form **advanced options** `key=value` (sent to CUPS
+  as `-o key=value`: `media`, `Resolution`, `ColorModel`, …).
+  Linux via CUPS (`lp`/`lpstat`), Windows via GDI.
 - Full **undo/redo**; *unsaved changes* prompt on close.
+
+## Screenshots
+
+Two-pane print preview — every sheet is drawn at the document's print size:
+
+![Overview](docs/screenshots/overview.png)
+
+"Two pages per sheet" with auto-rotation: portrait pages are turned 90° to fill the cells:
+
+![N-up](docs/screenshots/nup.png)
+
+Regenerate with `./build/screenshots.sh` (needs Xvfb, xdotool, ImageMagick).
 
 ## Quick start
 

@@ -9,18 +9,20 @@ namespace FinePdf.Core.Layout;
 public static class SheetLayout
 {
     /// <summary>
-    /// The rectangle a placement occupies on the sheet. One placement fills the sheet;
-    /// two split it along the sheet's long axis; more are arranged in a near-square grid
-    /// (four → 2×2). <paramref name="order"/> decides whether the cells are filled
-    /// left-to-right then top-to-bottom (<see cref="NUpOrder.RowMajor"/>, the default) or
-    /// top-to-bottom then left-to-right (<see cref="NUpOrder.ColumnMajor"/>).
+    /// The rectangle a placement occupies on the sheet. Content is laid inside the sheet minus
+    /// <paramref name="margins"/>: one placement fills that area; two split it along the sheet's
+    /// long axis; more are arranged in a near-square grid (four → 2×2). <paramref name="order"/>
+    /// decides whether the cells are filled left-to-right then top-to-bottom
+    /// (<see cref="NUpOrder.RowMajor"/>, the default) or top-to-bottom then left-to-right
+    /// (<see cref="NUpOrder.ColumnMajor"/>).
     /// </summary>
     public static Rect CellFor(
         int placementCount,
         int index,
         double sheetWidth,
         double sheetHeight,
-        NUpOrder order = NUpOrder.RowMajor)
+        NUpOrder order = NUpOrder.RowMajor,
+        PageMargins? margins = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(placementCount, 1);
         ArgumentOutOfRangeException.ThrowIfNegative(index);
@@ -28,9 +30,17 @@ public static class SheetLayout
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sheetWidth);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sheetHeight);
 
+        PageMargins m = margins ?? PageMargins.Zero;
+        double areaX = m.Left;
+        double areaY = m.Top;
+        double areaWidth = sheetWidth - m.Left - m.Right;
+        double areaHeight = sheetHeight - m.Top - m.Bottom;
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(areaWidth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(areaHeight);
+
         if (placementCount == 1)
         {
-            return new Rect(0, 0, sheetWidth, sheetHeight);
+            return new Rect(areaX, areaY, areaWidth, areaHeight);
         }
 
         int columns;
@@ -47,8 +57,8 @@ public static class SheetLayout
             rows = (int)Math.Ceiling((double)placementCount / columns);
         }
 
-        double cellWidth = sheetWidth / columns;
-        double cellHeight = sheetHeight / rows;
+        double cellWidth = areaWidth / columns;
+        double cellHeight = areaHeight / rows;
         int column;
         int row;
         if (order == NUpOrder.ColumnMajor)
@@ -62,7 +72,7 @@ public static class SheetLayout
             row = index / columns;
         }
 
-        return new Rect(column * cellWidth, row * cellHeight, cellWidth, cellHeight);
+        return new Rect(areaX + (column * cellWidth), areaY + (row * cellHeight), cellWidth, cellHeight);
     }
 
     /// <summary>

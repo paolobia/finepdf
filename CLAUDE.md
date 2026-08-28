@@ -74,7 +74,7 @@ non viene compilato su Linux: verificarlo su un runner Windows (CI).
 src/FinePdf.Core            libreria senza dipendenze UI
   Models/                   Composition, Sheet, Placement, SourceDocument/SourcePage,
                             PaperSize, PageOrientation, FitMode, RotationDegrees, NUpOrder,
-                            PrintOptions, PageRange, DuplexMode
+                            PageMargins, PrintOptions, PageRange, DuplexMode
   Layout/                   Rect, PlacedContent, SheetLayout (matematica di imposizione condivisa)
   Services/                 IPdfDocumentService/PdfSharpDocumentService,
                             IFolderSourceService/FolderSourceService,
@@ -135,7 +135,8 @@ motore di layout.
   memoria + su disco (cartella temp); rendering asincrono, mai sul thread UI.
 - **`IPrintService`** — `PrintServiceFactory` sceglie l'implementazione per piattaforma:
   - Linux → `LinuxCupsPrintService`: `lpstat -e` per l'elenco, `lp` per l'invio; i processi
-    passano per `IProcessRunner` (mockabile).
+    passano per `IProcessRunner` (mockabile). `PrintOptions.RawOptions` (`chiave=valore`) sono
+    inoltrate come `-o chiave=valore` — accesso libero a qualunque opzione del driver CUPS.
   - Windows → `WindowsPrintService`: `PrinterSettings.InstalledPrinters`, stampa GDI via
     `PrintDocument` renderizzando le pagine con PDFtoImage. Codice sotto
     `OperatingSystem.IsWindows()` e nel TFM `net8.0-windows`.
@@ -147,7 +148,8 @@ motore di layout.
   `SetNUpOrderAction` (ordine di riempimento righe/colonne),
   `FitOrientationAction` (ruota di 90° i placement il cui orientamento non combacia con la cella,
   via `SheetLayout.OrientationFixupDegrees`), `InsertBlankSheetAction`,
-  `SetSheetFitModeAction`, `SetDefaultFitModeAction`, `SetPaperAction`.
+  `SetSheetFitModeAction`, `SetDefaultFitModeAction`, `SetPaperAction`, `SetMarginsAction`
+  (`Composition.Margins`, margine uniforme applicato da `SheetLayout.CellFor`).
 
 ## Convenzioni
 
@@ -180,3 +182,4 @@ Milestone e stato: elenco qui sotto.
 - [x] M5 — Stampa: `IProcessRunner`/`ProcessRunner`, `IPrintService` + `PrintServiceFactory`, `LinuxCupsPrintService` (`lpstat -e`/`lp`, testato con `FakeProcessRunner`), `WindowsPrintService` GDI (`net8.0-windows`, non compilato su Linux), `PrintException`, `PageRange`/`PrintOptions`/`DuplexMode`, dialog di stampa interno (stampante, copie, intervallo, fronte/retro) + toolbar/Ctrl+P — 70 test verdi
 - [x] M6 — Rifinitura + packaging: avviso limitazioni note nella UI (dismissibile), scorciatoie da tastiera, metadati versione in `Directory.Build.props`, script `build/publish.sh`/`publish.ps1`, CI GitHub Actions (`ubuntu` build+test, `windows` build+test net8.0-windows), README aggiornato
 - [x] M7 — Barra azioni sull'anteprima (stessi comandi del menu contestuale), auto-rotazione delle pagine in N-up (`NUpAction.autoOrient` + `FitOrientationAction`/comando "Adatta orientamento") — 74 test verdi
+- [x] M8 — Margini di pagina (`PageMargins`/`SetMarginsAction`, campo mm in toolbar, guida tratteggiata nell'anteprima), opzioni avanzate di stampa `chiave=valore` (`PrintOptions.RawOptions` → `lp -o`), screenshot nel README (`build/screenshots.sh`) — 82 test verdi

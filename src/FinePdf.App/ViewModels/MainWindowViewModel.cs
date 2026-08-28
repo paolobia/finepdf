@@ -56,6 +56,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private FitMode _selectedFitMode = FitMode.Fit;
 
+    [ObservableProperty]
+    private double _selectedMarginMm;
+
     public MainWindowViewModel(
         IFolderSourceService folder,
         IPdfDocumentService documents,
@@ -598,6 +601,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SelectedPaperSize = PaperSizes.FirstOrDefault(p => p.Name == _composition.PaperSize.Name) ?? _composition.PaperSize;
         SelectedOrientation = _composition.Orientation;
         SelectedFitMode = _composition.DefaultFitMode;
+        SelectedMarginMm = Math.Round(_composition.Margins.MaxEdgeMillimeters, 1);
         _suppressSettingApply = false;
     }
 
@@ -614,6 +618,26 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         Apply(new SetDefaultFitModeAction(_composition, value));
     }
+
+    partial void OnSelectedMarginMmChanged(double value)
+    {
+        if (_suppressSettingApply)
+        {
+            return;
+        }
+
+        PageMargins target = PageMargins.FromMillimeters(Math.Max(0, value));
+        if (MarginsRoughlyEqual(_composition.Margins, target))
+        {
+            return;
+        }
+
+        Apply(new SetMarginsAction(_composition, target));
+    }
+
+    private static bool MarginsRoughlyEqual(PageMargins a, PageMargins b) =>
+        Math.Abs(a.Left - b.Left) < 0.5 && Math.Abs(a.Top - b.Top) < 0.5 &&
+        Math.Abs(a.Right - b.Right) < 0.5 && Math.Abs(a.Bottom - b.Bottom) < 0.5;
 
     private void ApplyPaper()
     {

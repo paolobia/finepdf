@@ -65,6 +65,16 @@ public sealed class LinuxCupsPrintService : IPrintService
                 args.Add($"page-ranges={options.Range.Text}");
             }
 
+            foreach (string raw in options.RawOptions)
+            {
+                string trimmed = raw.Trim();
+                if (trimmed.Length > 0)
+                {
+                    args.Add("-o");
+                    args.Add(trimmed);
+                }
+            }
+
             args.Add(tempPath);
 
             ProcessResult job = RunOrThrow("lp", args, "Invio alla stampante non riuscito.");

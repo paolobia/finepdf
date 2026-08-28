@@ -43,6 +43,12 @@
                           SelectedItem="{Binding SelectedFitMode}"
                           MinWidth="110" />
 
+                <TextBlock Text="Margini (mm)" VerticalAlignment="Center" Margin="8,0,0,0" />
+                <NumericUpDown Value="{Binding SelectedMarginMm}"
+                               Minimum="0" Maximum="40" Increment="1"
+                               FormatString="0.#" MinWidth="90"
+                               ToolTip.Tip="Margine uniforme applicato a ogni foglio" />
+
                 <Rectangle Width="1" Margin="4,2" Fill="#33000000" />
                 <Button Content="{Binding UndoLabel}" Command="{Binding UndoCommand}" />
                 <Button Content="{Binding RedoLabel}" Command="{Binding RedoCommand}" />

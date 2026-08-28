@@ -41,7 +41,8 @@ public sealed class FitOrientationAction : IUndoableAction
             for (int i = 0; i < count; i++)
             {
                 Placement placement = sheet.Placements[i];
-                Rect cell = SheetLayout.CellFor(count, i, sheetWidth, sheetHeight, sheet.NUpOrder);
+                Rect cell = SheetLayout.CellFor(
+                    count, i, sheetWidth, sheetHeight, sheet.NUpOrder, _composition.Margins);
                 int fix = SheetLayout.OrientationFixupDegrees(
                     cell, placement.Page.WidthPoints, placement.Page.HeightPoints, placement.Rotation.Value);
                 if (fix == 0)

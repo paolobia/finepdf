@@ -65,6 +65,26 @@ public class LinuxCupsPrintServiceTests
     }
 
     [Fact]
+    public void Print_RawOptions_ArePassedThroughAsDashO()
+    {
+        using var dir = new TempDir();
+        Composition composition = CompositionWith(dir, 2);
+        var runner = new FakeProcessRunner().Returns("lp", 0);
+        var service = new LinuxCupsPrintService(runner, new PdfComposer());
+
+        service.Print(composition, new PrintOptions("HomeInk")
+        {
+            RawOptions = ["media=A4", "Resolution=600dpi", "  ", "ColorModel=Gray"],
+        });
+
+        string[] args = runner.ArgsFor("lp");
+        Assert.Contains("media=A4", args);
+        Assert.Contains("Resolution=600dpi", args);
+        Assert.Contains("ColorModel=Gray", args);
+        Assert.DoesNotContain(args, a => a.Trim().Length == 0);
+    }
+
+    [Fact]
     public void Print_SimplexAllPages_OmitsPageRanges()
     {
         using var dir = new TempDir();

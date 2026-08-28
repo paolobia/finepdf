@@ -45,6 +45,16 @@
                       SelectedItem="{Binding SelectedDuplex}" />
         </Grid>
 
+        <Expander Header="Opzioni avanzate della stampante">
+            <StackPanel Spacing="4">
+                <TextBlock FontSize="11" Foreground="#88000000" TextWrapping="Wrap"
+                           Text="Una opzione per riga, nella forma chiave=valore (passate a CUPS come «-o chiave=valore»). Es. media=A4, Resolution=600dpi, ColorModel=Gray, fit-to-page=true." />
+                <TextBox Text="{Binding AdvancedOptions}" AcceptsReturn="True"
+                         Height="80" TextWrapping="NoWrap"
+                         Watermark="media=A4&#x0a;sides=two-sided-long-edge" />
+            </StackPanel>
+        </Expander>
+
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
             <Button Content="Annulla" Click="OnCancel" />
             <Button Content="Stampa" Click="OnConfirm" IsDefault="True"

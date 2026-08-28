@@ -77,6 +77,24 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
             canvas.DrawRect(0.5f, 0.5f, pixelWidth - 1f, pixelHeight - 1f, border);
         }
 
+        PageMargins margins = composition.Margins;
+        if (!margins.IsZero)
+        {
+            using var guide = new SKPaint
+            {
+                Style = SKPaintStyle.Stroke,
+                Color = new SKColor(0x99, 0xB0, 0xD8),
+                StrokeWidth = 1,
+                PathEffect = SKPathEffect.CreateDash([4f, 3f], 0f),
+            };
+            canvas.DrawRect(
+                (float)(margins.Left * scale),
+                (float)(margins.Top * scale),
+                (float)((sheetWidthPt - margins.Left - margins.Right) * scale),
+                (float)((sheetHeightPt - margins.Top - margins.Bottom) * scale),
+                guide);
+        }
+
         FitMode fit = sheet.EffectiveFitMode(composition);
         int placementCount = sheet.Placements.Count;
 
@@ -85,7 +103,8 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
             Placement placement = sheet.Placements[i];
             SourcePage sourcePage = placement.Page;
 
-            Rect cell = SheetLayout.CellFor(placementCount, i, sheetWidthPt, sheetHeightPt, sheet.NUpOrder);
+            Rect cell = SheetLayout.CellFor(
+                placementCount, i, sheetWidthPt, sheetHeightPt, sheet.NUpOrder, composition.Margins);
             PlacedContent placed = SheetLayout.Place(
                 cell, sourcePage.WidthPoints, sourcePage.HeightPoints, placement.Rotation.Value, fit);
 
@@ -165,7 +184,11 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
           .Append(height.ToString("F1", CultureInfo.InvariantCulture)).Append('|')
           .Append(pixelWidth).Append('|')
           .Append(sheet.EffectiveFitMode(composition)).Append('|')
-          .Append(sheet.NUpOrder).Append('|');
+          .Append(sheet.NUpOrder).Append('|')
+          .Append(composition.Margins.Left.ToString("F1", CultureInfo.InvariantCulture)).Append(',')
+          .Append(composition.Margins.Top.ToString("F1", CultureInfo.InvariantCulture)).Append(',')
+          .Append(composition.Margins.Right.ToString("F1", CultureInfo.InvariantCulture)).Append(',')
+          .Append(composition.Margins.Bottom.ToString("F1", CultureInfo.InvariantCulture)).Append('|');
 
         foreach (Placement placement in sheet.Placements)
         {

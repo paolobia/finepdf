@@ -15,6 +15,9 @@ public sealed class Composition
 
     public FitMode DefaultFitMode { get; set; } = FitMode.Fit;
 
+    /// <summary>Page margins applied to every sheet. Default: none.</summary>
+    public PageMargins Margins { get; set; } = PageMargins.Zero;
+
     public IReadOnlyList<Sheet> Sheets => _sheets;
 
     /// <summary>Sheet dimensions in points after applying <see cref="Orientation"/>.</summary>

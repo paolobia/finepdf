@@ -16,9 +16,25 @@ cancellazione, imposizione "N pagine in una" (N-up), rotazione e stampa delle pa
 - **Pagina vuota**: dal menu contestuale, eredita formato e orientazione del documento.
 - **Adattamento** (`FitMode`): predefinito di documento + override per foglio
   (adatta / dimensione reale / riempi).
+- **Margini** di pagina uniformi (mm), applicati a ogni foglio; guida tratteggiata nell'anteprima.
 - **Stampa**: il pannello destro **è** l'anteprima di stampa; dialog interno con stampante,
-  copie, intervallo (`1-3, 5`) e fronte/retro. Linux via CUPS (`lp`/`lpstat`), Windows via GDI.
+  copie, intervallo (`1-3, 5`), fronte/retro e **opzioni avanzate** libere `chiave=valore`
+  (passate a CUPS come `-o chiave=valore`: `media`, `Resolution`, `ColorModel`, …).
+  Linux via CUPS (`lp`/`lpstat`), Windows via GDI.
 - **Undo/redo** completo; avviso *modifiche non salvate* alla chiusura.
+
+## Screenshot
+
+Anteprima di stampa a due pannelli — ogni foglio è disegnato nel formato di stampa del documento:
+
+![Panoramica](docs/screenshots/overview.png)
+
+"Due pagine per foglio" con auto-rotazione: le pagine verticali vengono ruotate di 90° per
+riempire le celle:
+
+![N-up](docs/screenshots/nup.png)
+
+Gli screenshot si rigenerano con `./build/screenshots.sh` (richiede Xvfb, xdotool, ImageMagick).
 
 ## Avvio rapido
 

@@ -21,6 +21,9 @@ public partial class PrintDialogViewModel : ViewModelBase
     [ObservableProperty]
     private DuplexChoice _selectedDuplex;
 
+    [ObservableProperty]
+    private string _advancedOptions = string.Empty;
+
     public PrintDialogViewModel(IReadOnlyList<PrinterInfo> printers)
     {
         Printers = printers;
@@ -48,7 +51,14 @@ public partial class PrintDialogViewModel : ViewModelBase
         Copies = Copies,
         Duplex = SelectedDuplex.Mode,
         Range = PageRange.Parse(RangeText),
+        RawOptions = ParseAdvancedOptions(AdvancedOptions),
     };
+
+    private static IReadOnlyList<string> ParseAdvancedOptions(string text) =>
+    [
+        .. text.Split(new[] { '\n', '\r', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+               .Where(entry => entry.Contains('=', StringComparison.Ordinal)),
+    ];
 
     partial void OnSelectedPrinterChanged(PrinterInfo? value) => OnPropertyChanged(nameof(CanConfirm));
 

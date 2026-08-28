@@ -45,7 +45,8 @@ public sealed class PdfComposer : IPdfComposer
                     Placement placement = sheet.Placements[i];
                     SourcePage sourcePage = placement.Page;
 
-                    Rect cell = SheetLayout.CellFor(placementCount, i, sheetWidth, sheetHeight, sheet.NUpOrder);
+                    Rect cell = SheetLayout.CellFor(
+                        placementCount, i, sheetWidth, sheetHeight, sheet.NUpOrder, composition.Margins);
                     PlacedContent placed = SheetLayout.Place(
                         cell,
                         sourcePage.WidthPoints,
