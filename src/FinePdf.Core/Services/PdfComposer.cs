@@ -43,6 +43,12 @@ public sealed class PdfComposer : IPdfComposer
                 for (int i = 0; i < placementCount; i++)
                 {
                     Placement placement = sheet.Placements[i];
+                    if (placement.IsBlank)
+                    {
+                        // A blank placement leaves its cell white — nothing to draw.
+                        continue;
+                    }
+
                     SourcePage sourcePage = placement.Page;
 
                     Rect cell = SheetLayout.CellFor(

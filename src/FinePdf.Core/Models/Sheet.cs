@@ -3,9 +3,9 @@ namespace FinePdf.Core.Models;
 /// <summary>
 /// One sheet of the output document. Holds an ordered list of <see cref="Placement"/>:
 /// <list type="bullet">
-///   <item>0 placements — a blank sheet;</item>
+///   <item>a single blank placement — a blank sheet;</item>
 ///   <item>1 placement — a normal page;</item>
-///   <item>2 or 4 placements — an N-up imposition.</item>
+///   <item>2 or 4 placements — an N-up imposition (any of which may be blank).</item>
 /// </list>
 /// The paper size and orientation come from the owning <see cref="Composition"/>; only the
 /// <see cref="FitModeOverride"/> is per-sheet.
@@ -34,7 +34,11 @@ public sealed class Sheet
 
     public IReadOnlyList<Placement> Placements => _placements;
 
-    public bool IsBlank => _placements.Count == 0;
+    /// <summary>The whole sheet is empty: no placements, or every placement is blank.</summary>
+    public bool IsBlank => _placements.Count == 0 || _placements.TrueForAll(p => p.IsBlank);
+
+    /// <summary>Number of placements that actually carry content.</summary>
+    public int ContentPlacementCount => _placements.Count(p => !p.IsBlank);
 
     /// <summary>When set, overrides <see cref="Composition.DefaultFitMode"/> for this sheet.</summary>
     public FitMode? FitModeOverride { get; set; }

@@ -23,14 +23,18 @@ sudo ./cups/uninstall.sh              # rimuove tutto
 
 ### Dipendenze
 
-| Componente | Pacchetto Debian/Ubuntu | Obbligatorio |
-|---|---|---|
-| CUPS server | `cups` | sì |
-| CUPS client (`lp`, `lpstat`, `lpadmin`) | `cups-client` | sì |
-| Ghostscript (`gs`) | `ghostscript` | sì |
-| polkit (`pkexec`) | `polkit` / `policykit-1` | per l'installazione dall'app |
-| Python 3 | `python3` | sì (il backend è uno script Python) |
-| poppler (`pdfinfo`) | `poppler-utils` | opzionale (arricchisce `__Origine`) |
+| Componente | Debian/Ubuntu | Arch/Manjaro | Obbligatorio |
+|---|---|---|---|
+| CUPS server | `cups` | `cups` | sì |
+| CUPS client (`lp`, `lpstat`, `lpadmin`) | `cups-client` | incluso in `cups` | sì |
+| Ghostscript (`gs`) | `ghostscript` | `ghostscript` | sì |
+| polkit (`pkexec`) | `policykit-1` / `polkit` | `polkit` + un agent (`polkit-kde-agent-1` / `polkit-gnome`) | per l'installazione dall'app |
+| Python 3 | `python3` | `python` | sì (il backend è uno script Python) |
+| poppler (`pdfinfo`) | `poppler-utils` | `poppler` | opzionale (arricchisce `__Origine`) |
+
+Su **Arch/Manjaro** assicurati che CUPS sia abilitato: `sudo systemctl enable --now cups.socket`
+(`install.sh` prova comunque ad avviarlo). Manjaro non usa AppArmor di default → il blocco
+relativo in `install.sh` viene saltato e il backend gira senza confinamento (nessun problema).
 
 ## Come funziona
 

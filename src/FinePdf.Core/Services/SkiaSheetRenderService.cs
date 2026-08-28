@@ -101,6 +101,12 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
         for (int i = 0; i < placementCount; i++)
         {
             Placement placement = sheet.Placements[i];
+            if (placement.IsBlank)
+            {
+                // Blank placement: leave the cell as the white surface already painted.
+                continue;
+            }
+
             SourcePage sourcePage = placement.Page;
 
             Rect cell = SheetLayout.CellFor(

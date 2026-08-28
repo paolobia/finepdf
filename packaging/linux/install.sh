@@ -63,13 +63,22 @@ if [ -d /etc/apparmor.d ] && command -v apparmor_parser >/dev/null 2>&1 && aa-en
     fi
 fi
 
-# 5. register the queue (explicit enable/accept — avoids the position-sensitive -E)
+# 5. make sure cupsd is reachable (Arch/Manjaro is often only socket-activated)
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl start cups.socket 2>/dev/null \
+        || systemctl start cups.service 2>/dev/null \
+        || systemctl start org.cups.cupsd.service 2>/dev/null || true
+fi
+
+# 6. register the queue (explicit enable/accept — avoids the position-sensitive -E)
 lpadmin -p "$PRINTER" -v finepdf:/ -P "$PPD_DEST" \
         -D "FinePdf (stampante PDF virtuale)" -L "FinePdf" \
         -o printer-is-shared=false -o printer-error-policy=abort-job
 cupsenable "$PRINTER" 2>/dev/null || true
 cupsaccept "$PRINTER" 2>/dev/null || true
 
-systemctl try-restart cups 2>/dev/null || service cups restart 2>/dev/null || true
+systemctl try-restart cups.service 2>/dev/null \
+    || systemctl try-restart org.cups.cupsd.service 2>/dev/null \
+    || service cups restart 2>/dev/null || true
 
 echo "OK: stampante $PRINTER installata -> $OUT_FOLDER"

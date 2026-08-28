@@ -65,6 +65,39 @@ public class SheetOperationsTests
     }
 
     [Fact]
+    public void InsertBlankSheet_BlankIsBackedByASingleBlankPlacement()
+    {
+        var composition = new Composition();
+        new InsertBlankSheetAction(composition).Do();
+
+        Sheet blank = composition.Sheets[0];
+        Assert.True(blank.IsBlank);
+        Assert.Single(blank.Placements);
+        Assert.True(blank.Placements[0].IsBlank);
+        Assert.Equal(0, blank.ContentPlacementCount);
+    }
+
+    [Fact]
+    public void MergePageWithBlank_ProducesHalfContentHalfBlankSheet_AndComposes()
+    {
+        using var dir = new TempDir();
+        Composition composition = CompositionWith(dir, 1);          // one real page
+        new InsertBlankSheetAction(composition).Do();               // + one blank sheet
+
+        new MergeSheetsAction(composition, [0, 1]).Do();
+
+        Sheet merged = Assert.Single(composition.Sheets);
+        Assert.False(merged.IsBlank);
+        Assert.Equal(2, merged.Placements.Count);
+        Assert.Equal(1, merged.ContentPlacementCount);
+        Assert.True(merged.Placements[1].IsBlank);
+
+        string outPath = dir.File("out.pdf");
+        new PdfComposer().Compose(composition, outPath);
+        Assert.Equal(1, new PdfSharpDocumentService().Load(outPath).PageCount);
+    }
+
+    [Fact]
     public void InsertBlankSheet_AddsBlank_AndUndoRemoves()
     {
         using var dir = new TempDir();

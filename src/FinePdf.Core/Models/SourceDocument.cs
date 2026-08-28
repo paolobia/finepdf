@@ -17,7 +17,7 @@ public sealed class SourceDocument
         Pages = pages;
     }
 
-    /// <summary>Absolute path to the PDF on disk.</summary>
+    /// <summary>Absolute path to the PDF on disk (or <c>"(blank)"</c> for a synthetic blank page).</summary>
     public string Path { get; }
 
     public string FileName { get; }
@@ -26,5 +26,15 @@ public sealed class SourceDocument
 
     public int PageCount => Pages.Count;
 
-    public override string ToString() => $"{FileName} ({PageCount} pg)";
+    /// <summary>
+    /// <c>true</c> for the synthetic single blank page produced by <see cref="CreateBlank"/>.
+    /// Composer and preview leave a blank placement's cell white and never touch <see cref="Path"/>.
+    /// </summary>
+    public bool IsBlank { get; init; }
+
+    /// <summary>A one-page, no-content document sized to the given sheet dimensions (in points).</summary>
+    public static SourceDocument CreateBlank(double widthPoints, double heightPoints) =>
+        new("(blank)", [new SourcePage(0, widthPoints, heightPoints)]) { IsBlank = true };
+
+    public override string ToString() => IsBlank ? "(pagina vuota)" : $"{FileName} ({PageCount} pg)";
 }

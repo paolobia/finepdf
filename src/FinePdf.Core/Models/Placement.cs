@@ -30,4 +30,7 @@ public sealed record Placement
     public RotationDegrees Rotation { get; init; } = RotationDegrees.None;
 
     public SourcePage Page => Source.Pages[SourcePageIndex];
+
+    /// <summary>This placement carries no content — its cell stays white.</summary>
+    public bool IsBlank => Source.IsBlank;
 }

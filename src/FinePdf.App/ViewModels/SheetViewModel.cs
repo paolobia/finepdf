@@ -35,11 +35,16 @@ public partial class SheetViewModel : ViewModelBase
     public void UpdateLabels(int position)
     {
         Title = $"Foglio {position}";
+
+        int total = Sheet.Placements.Count;
+        int blanks = total - Sheet.ContentPlacementCount;
         Caption = Sheet.IsBlank
             ? "pagina vuota"
-            : Sheet.Placements.Count == 1
+            : total == 1
                 ? DescribePlacement(Sheet.Placements[0])
-                : $"{Sheet.Placements.Count} pagine su un foglio";
+                : blanks == 0
+                    ? $"{total} pagine su un foglio"
+                    : $"{total - blanks} pagine + {blanks} vuota su un foglio";
     }
 
     public async Task RenderAsync(int pixelWidth, CancellationToken cancellationToken = default)
