@@ -2,7 +2,7 @@
 # Installs the "FinePdf" CUPS virtual printer. Run as root:
 #     sudo ./install.sh /percorso/cartella-output
 # The FinePdf app calls this via pkexec. Exit codes are consumed by LinuxPrinterManager:
-#   0 ok | 3 snap-CUPS | 4 ghostscript missing | 5 cups/permission problem
+#   0 ok | 3 snap-only CUPS | 4 ghostscript missing | 5 cups/permission problem
 set -eu
 
 OUT_FOLDER="${1:-}"
@@ -15,15 +15,24 @@ MARK_END="# <<< FinePdf <<<"
 [ "$(id -u)" = 0 ] || { echo "ERROR: eseguire come root" >&2; exit 5; }
 [ -n "$OUT_FOLDER" ] || { echo "ERROR: cartella di output mancante" >&2; exit 5; }
 
-command -v gs >/dev/null 2>&1      || { echo "ERROR: ghostscript non installato" >&2; exit 4; }
-command -v lpadmin >/dev/null 2>&1 || { echo "ERROR: cups (lpadmin) non installato" >&2; exit 5; }
+# Prefer the distro's CUPS tools over any snap shim that might shadow them on PATH.
+sysbin() { if [ -x "/usr/bin/$1" ]; then printf '/usr/bin/%s' "$1"; else printf '%s' "$1"; fi; }
+LPADMIN="$(sysbin lpadmin)"
+CUPSENABLE="$(sysbin cupsenable)"
+CUPSACCEPT="$(sysbin cupsaccept)"
+CUPSTESTPPD="$(sysbin cupstestppd)"
+CUPSCONFIG="$(sysbin cups-config)"
 
-SERVERBIN="$(cups-config --serverbin 2>/dev/null || echo /usr/lib/cups)"
+command -v gs >/dev/null 2>&1 || { echo "ERROR: ghostscript non installato" >&2; exit 4; }
+[ -x "$LPADMIN" ] || command -v lpadmin >/dev/null 2>&1 \
+    || { echo "ERROR: cups (lpadmin) non installato" >&2; exit 5; }
+
+SERVERBIN="$("$CUPSCONFIG" --serverbin 2>/dev/null || echo /usr/lib/cups)"
 BACKEND_DIR="$SERVERBIN/backend"
 
-# snap-CUPS is a problem ONLY when there is no host CUPS: the snap's cupsd can't see a
-# backend on the host filesystem. If a native cupsd + backend dir exist, proceed
-# regardless of a snap 'cups' also being installed.
+# snap-CUPS is a problem ONLY when there is no host CUPS: the snap's cupsd cannot see a
+# backend on the host filesystem. If a native cupsd + backend dir exist, proceed regardless
+# of a snap 'cups' also being installed.
 HOST_CUPSD=""
 for c in /usr/sbin/cupsd /usr/lib/cups/daemon/cupsd "$SERVERBIN/daemon/cupsd"; do
     [ -x "$c" ] && HOST_CUPSD="$c" && break
@@ -31,7 +40,7 @@ done
 command -v cupsd >/dev/null 2>&1 && HOST_CUPSD="${HOST_CUPSD:-cupsd}"
 if [ -z "$HOST_CUPSD" ] || [ ! -d "$BACKEND_DIR" ]; then
     if snap list cups >/dev/null 2>&1; then
-        echo "ERROR: CUPS disponibile solo come snap: non supportato. Installa il pacchetto 'cups' di sistema (pacman: cups)." >&2
+        echo "ERROR: CUPS disponibile solo come snap: non supportato. Installa il pacchetto 'cups' di sistema." >&2
         exit 3
     fi
     echo "ERROR: CUPS di sistema non trovato ($BACKEND_DIR inesistente)." >&2
@@ -43,8 +52,8 @@ install -o root -g root -m 0700 "$SCRIPT_DIR/finepdf" "$BACKEND_DIR/finepdf"
 
 # 2. PPD
 install -D -o root -g root -m 0644 "$SCRIPT_DIR/finepdf.ppd" "$PPD_DEST"
-if command -v cupstestppd >/dev/null 2>&1; then
-    cupstestppd -q "$PPD_DEST" || { echo "ERROR: PPD non valida" >&2; exit 5; }
+if [ -x "$CUPSTESTPPD" ] || command -v cupstestppd >/dev/null 2>&1; then
+    "$CUPSTESTPPD" -q "$PPD_DEST" || { echo "ERROR: PPD non valida" >&2; exit 5; }
 fi
 
 # 3. system-wide fallback config (per-user settings.json still wins)
@@ -82,11 +91,11 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 # 6. register the queue (explicit enable/accept — avoids the position-sensitive -E)
-lpadmin -p "$PRINTER" -v finepdf:/ -P "$PPD_DEST" \
+"$LPADMIN" -p "$PRINTER" -v finepdf:/ -P "$PPD_DEST" \
         -D "FinePdf (stampante PDF virtuale)" -L "FinePdf" \
         -o printer-is-shared=false -o printer-error-policy=abort-job
-cupsenable "$PRINTER" 2>/dev/null || true
-cupsaccept "$PRINTER" 2>/dev/null || true
+"$CUPSENABLE" "$PRINTER" 2>/dev/null || true
+"$CUPSACCEPT" "$PRINTER" 2>/dev/null || true
 
 systemctl try-restart cups.service 2>/dev/null \
     || systemctl try-restart org.cups.cupsd.service 2>/dev/null \
