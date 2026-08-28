@@ -15,17 +15,28 @@ MARK_END="# <<< FinePdf <<<"
 [ "$(id -u)" = 0 ] || { echo "ERROR: eseguire come root" >&2; exit 5; }
 [ -n "$OUT_FOLDER" ] || { echo "ERROR: cartella di output mancante" >&2; exit 5; }
 
-if snap list cups >/dev/null 2>&1; then
-    echo "ERROR: CUPS installato come snap: non supportato. Usa il pacchetto 'cups' di sistema." >&2
-    exit 3
-fi
-
 command -v gs >/dev/null 2>&1      || { echo "ERROR: ghostscript non installato" >&2; exit 4; }
 command -v lpadmin >/dev/null 2>&1 || { echo "ERROR: cups (lpadmin) non installato" >&2; exit 5; }
 
 SERVERBIN="$(cups-config --serverbin 2>/dev/null || echo /usr/lib/cups)"
 BACKEND_DIR="$SERVERBIN/backend"
-[ -d "$BACKEND_DIR" ] || { echo "ERROR: $BACKEND_DIR inesistente" >&2; exit 5; }
+
+# snap-CUPS is a problem ONLY when there is no host CUPS: the snap's cupsd can't see a
+# backend on the host filesystem. If a native cupsd + backend dir exist, proceed
+# regardless of a snap 'cups' also being installed.
+HOST_CUPSD=""
+for c in /usr/sbin/cupsd /usr/lib/cups/daemon/cupsd "$SERVERBIN/daemon/cupsd"; do
+    [ -x "$c" ] && HOST_CUPSD="$c" && break
+done
+command -v cupsd >/dev/null 2>&1 && HOST_CUPSD="${HOST_CUPSD:-cupsd}"
+if [ -z "$HOST_CUPSD" ] || [ ! -d "$BACKEND_DIR" ]; then
+    if snap list cups >/dev/null 2>&1; then
+        echo "ERROR: CUPS disponibile solo come snap: non supportato. Installa il pacchetto 'cups' di sistema (pacman: cups)." >&2
+        exit 3
+    fi
+    echo "ERROR: CUPS di sistema non trovato ($BACKEND_DIR inesistente)." >&2
+    exit 5
+fi
 
 # 1. backend BEFORE lpadmin (CUPS validates the URI scheme at lpadmin time)
 install -o root -g root -m 0700 "$SCRIPT_DIR/finepdf" "$BACKEND_DIR/finepdf"
