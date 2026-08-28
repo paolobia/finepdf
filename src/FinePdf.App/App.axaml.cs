@@ -12,6 +12,9 @@ namespace FinePdf.App;
 
 public partial class App : Application
 {
+    private static readonly string[] WorkFolderExtensions =
+        [".pdf", ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp"];
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -24,21 +27,26 @@ public partial class App : Application
             var window = new MainWindow();
             var dialogs = new FileDialogService(() => window);
             var composer = new PdfComposer();
-            var printService = PrintServiceFactory.Create(new ProcessRunner(), composer);
-            var printDialogs = new PrintDialogService(() => window);
+            var processRunner = new ProcessRunner();
+            var settings = new AppSettingsService();
 
             var viewModel = new MainWindowViewModel(
+                new FolderSourceService(extensions: WorkFolderExtensions),
                 new FolderSourceService(),
                 new PdfSharpDocumentService(),
                 new SkiaSheetRenderService(),
                 composer,
                 dialogs,
-                printService,
-                printDialogs);
+                PrintServiceFactory.Create(processRunner, composer),
+                new PrintDialogService(() => window),
+                new DocumentImportService(),
+                settings,
+                PrinterManagerFactory.Create(processRunner),
+                new PrinterSetupDialogService(() => window, dialogs));
 
             window.DataContext = viewModel;
             window.Closed += (_, _) => viewModel.Dispose();
-            viewModel.Initialize(Directory.GetCurrentDirectory());
+            viewModel.Initialize(settings.LastFolder ?? Directory.GetCurrentDirectory());
 
             desktop.MainWindow = window;
         }

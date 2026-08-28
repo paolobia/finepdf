@@ -1,0 +1,5 @@
+# CUPS packaging files are shipped verbatim to Linux hosts — always LF, never CRLF.
+packaging/linux/finepdf      text eol=lf
+packaging/linux/*.sh         text eol=lf
+packaging/linux/*.ppd        text eol=lf
+build/*.sh                   text eol=lf

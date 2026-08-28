@@ -82,12 +82,18 @@ src/FinePdf.Core            libreria senza dipendenze UI
                             ISheetRenderService/SkiaSheetRenderService,
                             IProcessRunner/ProcessRunner,
                             IPrintService + PrintServiceFactory
-                              (LinuxCupsPrintService, WindowsPrintService [net8.0-windows])
+                              (LinuxCupsPrintService, WindowsPrintService [net8.0-windows]),
+                            IAppSettingsService/AppSettingsService (~/.config/FinePdf/settings.json),
+                            IDocumentImportService/DocumentImportService (immagine → PDF),
+                            IPrinterManager + PrinterManagerFactory (LinuxPrinterManager),
+                            IPrinterInstallerAssets/EmbeddedPrinterInstallerAssets
   Operations/               IUndoableAction, IUndoRedoStack/UndoRedoStack, CompositeAction,
                             Actions/ (AddFilePages, MoveSheet, DeleteSheets, RotateSheet,
                             MergeSheets, NUp, SetNUpOrder, InsertBlankSheet, SetSheetFitMode,
                             SetDefaultFitMode, SetPaper)
-  PdfLoadException.cs, PrintException.cs
+  PdfLoadException.cs, PrintException.cs, DocumentImportException.cs, PrinterManagerException.cs
+packaging/linux            backend CUPS (finepdf, Python), finepdf.ppd, install.sh/uninstall.sh
+                            — embeddati in FinePdf.Core, estratti a runtime
 src/FinePdf.App             app Avalonia (MVVM): ViewModels, Views, Services UI
 tests/FinePdf.Core.Tests    unit test xUnit (PDF di prova generati a runtime, TestSupport/)
 ```
@@ -140,6 +146,19 @@ motore di layout.
   - Windows → `WindowsPrintService`: `PrinterSettings.InstalledPrinters`, stampa GDI via
     `PrintDocument` renderizzando le pagine con PDFtoImage. Codice sotto
     `OperatingSystem.IsWindows()` e nel TFM `net8.0-windows`.
+- **`IAppSettingsService`** — unico stato persistito: `~/.config/FinePdf/settings.json` con
+  `lastFolder` (scheda *Cartella di lavoro*) e `printerOutputFolder` (stampante virtuale).
+  Scrittura atomica, best-effort. **I nomi delle chiavi sono contratto col backend CUPS**.
+- **`IDocumentImportService`** — `EnsurePdf(path)`: PDF invariato; immagine (`png/jpg/bmp/gif/webp`)
+  decodificata con SkiaSharp → PDF di una pagina con PdfSharp, in cache di sessione sotto temp.
+- **`IPrinterManager`** (solo Linux, `PrinterManagerFactory` → null-object altrove) — installa/
+  rimuove la stampante virtuale "FinePdf". `EmbeddedPrinterInstallerAssets` estrae
+  `packaging/linux/*` (embeddati in `FinePdf.Core`) in `~/.local/share/FinePdf/installer`, poi
+  `LinuxPrinterManager` esegue `pkexec install.sh <cartella>` / `pkexec uninstall.sh`. `install.sh`
+  installa il backend Python (`/usr/lib/cups/backend/finepdf`, `0700 root:root` → gira come root,
+  fa `fork`+`setuid` all'utente prima di scrivere), la PPD PostScript, `lpadmin -p FinePdf`.
+  Il backend converte PS→PDF con Ghostscript (o copia se già `%PDF`) nella cartella letta da
+  `settings.json`. Mapping exit code → `PrinterManagerFault` per i messaggi UI.
 - **`IUndoRedoStack`** — ogni operazione è un `IUndoableAction` (undo/redo completo):
   `AddFilePagesAction`, `MoveSheetAction`, `DeleteSheetsAction`, `RotateSheetAction`
   (tutti i placement del foglio, o uno solo), `MergeSheetsAction` (unisci i fogli selezionati
@@ -183,3 +202,4 @@ Milestone e stato: elenco qui sotto.
 - [x] M6 — Rifinitura + packaging: avviso limitazioni note nella UI (dismissibile), scorciatoie da tastiera, metadati versione in `Directory.Build.props`, script `build/publish.sh`/`publish.ps1`, CI GitHub Actions (`ubuntu` build+test, `windows` build+test net8.0-windows), README aggiornato
 - [x] M7 — Barra azioni sull'anteprima (stessi comandi del menu contestuale), auto-rotazione delle pagine in N-up (`NUpAction.autoOrient` + `FitOrientationAction`/comando "Adatta orientamento") — 74 test verdi
 - [x] M8 — Margini di pagina (`PageMargins`/`SetMarginsAction`, campo mm in toolbar, guida tratteggiata nell'anteprima), opzioni avanzate di stampa `chiave=valore` (`PrintOptions.RawOptions` → `lp -o`), screenshot nel README (`build/screenshots.sh`) — 82 test verdi
+- [x] M9 — Persistenza config (`AppSettingsService` → `~/.config/FinePdf/settings.json`, chiavi `lastFolder`/`printerOutputFolder`), pannello Sorgenti a 2 schede (`FolderPaneViewModel`: *Cartella di lavoro* navigabile + *PDF da stampante* sola lettura), import immagini in-process (`DocumentImportService`, `FolderSourceService` con estensioni configurabili), **stampante virtuale CUPS** (backend Python + PPD + `install.sh`/`uninstall.sh` in `packaging/linux/`, embeddati; `IPrinterManager`/`LinuxPrinterManager` via `pkexec`; dialogo "Stampante virtuale…"), job CI `cups-integration` — 111 test unit verdi

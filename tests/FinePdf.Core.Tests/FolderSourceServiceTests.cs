@@ -58,6 +58,26 @@ public class FolderSourceServiceTests
     }
 
     [Fact]
+    public void SetFolder_WithExtendedExtensions_ListsImages_ButDefaultDoesNot()
+    {
+        using var dir = new TempDir();
+        PdfTestFactory.CreatePdf(dir.Path, "doc.pdf", 1);
+        File.WriteAllText(dir.File("scan.png"), "fake");
+        File.WriteAllText(dir.File("photo.JPG"), "fake");
+
+        using var extended = new FolderSourceService(
+            enableWatcher: false, extensions: [".pdf", ".png", ".jpg"]);
+        extended.SetFolder(dir.Path);
+        Assert.Equal(
+            ["doc.pdf", "photo.JPG", "scan.png"],
+            extended.Files.Select(Path.GetFileName).ToArray());
+
+        using var pdfOnly = new FolderSourceService(enableWatcher: false);
+        pdfOnly.SetFolder(dir.Path);
+        Assert.Equal(["doc.pdf"], pdfOnly.Files.Select(Path.GetFileName).ToArray());
+    }
+
+    [Fact]
     public void SetFolder_MissingDirectory_Throws()
     {
         using var service = new FolderSourceService(enableWatcher: false);

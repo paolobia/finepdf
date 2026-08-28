@@ -6,9 +6,8 @@ namespace FinePdf.Core.Services;
 /// <inheritdoc />
 public sealed class FolderSourceService : IFolderSourceService
 {
-    private const string PdfExtension = ".pdf";
-
     private readonly bool _enableWatcher;
+    private readonly IReadOnlySet<string> _extensions;
     private readonly object _gate = new();
     private readonly Timer _debounce;
 
@@ -20,9 +19,15 @@ public sealed class FolderSourceService : IFolderSourceService
     /// When <c>false</c>, no <see cref="FileSystemWatcher"/> is created and the caller must
     /// invoke <see cref="Refresh"/> explicitly. Used by tests to stay deterministic.
     /// </param>
-    public FolderSourceService(bool enableWatcher = true)
+    /// <param name="extensions">
+    /// File extensions to list (with leading dot, case-insensitive). Defaults to <c>.pdf</c> only.
+    /// </param>
+    public FolderSourceService(bool enableWatcher = true, IReadOnlyCollection<string>? extensions = null)
     {
         _enableWatcher = enableWatcher;
+        _extensions = extensions is { Count: > 0 }
+            ? new HashSet<string>(extensions, StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pdf" };
         _debounce = new Timer(250) { AutoReset = false };
         _debounce.Elapsed += OnDebounceElapsed;
     }
@@ -75,7 +80,7 @@ public sealed class FolderSourceService : IFolderSourceService
         string[] scanned = folder is null
             ? []
             : [.. Directory.EnumerateFiles(folder)
-                .Where(static f => string.Equals(Path.GetExtension(f), PdfExtension, StringComparison.OrdinalIgnoreCase))
+                .Where(f => _extensions.Contains(Path.GetExtension(f)))
                 .OrderBy(static f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)];
 
         bool changed;

@@ -7,6 +7,13 @@ cancellazione, imposizione "N pagine in una" (N-up), rotazione e stampa delle pa
 
 ## Funzionalità
 
+- **Pannello sorgenti a 2 schede**: *Cartella di lavoro* (navigabile; accetta PDF **e immagini**
+  `png/jpg/bmp/gif/webp`, convertite in PDF una pagina per immagine) e *PDF da stampante*
+  (cartella della stampante virtuale, sola lettura). Doppio click su un file di una qualsiasi
+  scheda → accoda le pagine alla composizione. Ultima cartella e cartella stampante ricordate.
+- **Stampante virtuale «FinePdf» (Linux)**: registra una stampante di sistema; stampandoci da
+  qualsiasi app il PDF finisce nella cartella scelta. Un solo prompt di autorizzazione.
+  Vedi [`docs/virtual-printer.md`](docs/virtual-printer.md).
 - **Unione**: doppio click su un PDF nell'elenco sorgenti → accoda tutte le sue pagine.
 - **Riordino**: drag & drop nell'anteprima, pulsanti *Sposta su/giù*, `Alt+↑/↓`.
 - **Cancellazione**: selezione singola o multipla, menu contestuale o `Canc`.
@@ -46,6 +53,10 @@ dotnet run --project src/FinePdf.App
 
 Richiede **.NET SDK 8.0.x**. Su Linux/macOS i progetti sono single-target `net8.0`; su Windows
 `FinePdf.App` passa a `net8.0-windows` per la stampa GDI (`WindowsPrintService`).
+
+La **stampante virtuale** (Linux) richiede a runtime: `cups`, `cups-client`, `ghostscript`,
+`python3`, `polkit`/`policykit-1` (e opzionalmente `poppler-utils`). Dettagli in
+[`docs/virtual-printer.md`](docs/virtual-printer.md).
 
 ## Struttura
 

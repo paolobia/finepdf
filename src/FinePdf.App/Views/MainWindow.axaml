@@ -26,10 +26,15 @@
 
         <!-- Toolbar: impostazioni di documento + comandi globali -->
         <Border Grid.Row="0" Padding="8" BorderThickness="0,0,0,1" BorderBrush="#22000000">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-                <Button Content="Cambia cartella…" Command="{Binding ChangeFolderCommand}" />
-                <Rectangle Width="1" Margin="4,2" Fill="#33000000" />
-
+            <WrapPanel Orientation="Horizontal">
+                <WrapPanel.Styles>
+                    <Style Selector="WrapPanel > :is(Control)">
+                        <Setter Property="Margin" Value="3" />
+                    </Style>
+                    <Style Selector="WrapPanel > TextBlock">
+                        <Setter Property="VerticalAlignment" Value="Center" />
+                    </Style>
+                </WrapPanel.Styles>
                 <TextBlock Text="Formato" VerticalAlignment="Center" />
                 <ComboBox ItemsSource="{Binding PaperSizes}"
                           SelectedItem="{Binding SelectedPaperSize}"
@@ -57,7 +62,14 @@
                 <Button Content="Salva" Command="{Binding SaveCommand}" />
                 <Button Content="Salva con nome…" Command="{Binding SaveAsCommand}" />
                 <Button Content="Stampa…" Command="{Binding PrintCommand}" />
-            </StackPanel>
+
+                <Rectangle Width="1" Margin="4,2" Fill="#33000000"
+                           IsVisible="{Binding IsPrinterManagerSupported}" />
+                <Button Content="Stampante virtuale…"
+                        Command="{Binding VirtualPrinterCommand}"
+                        IsVisible="{Binding IsPrinterManagerSupported}"
+                        ToolTip.Tip="Crea/rimuove la stampante «FinePdf»: stampando lì da qualsiasi app il PDF arriva nella cartella scelta" />
+            </WrapPanel>
         </Border>
 
         <!-- Avviso limitazioni note della ricomposizione con PdfSharp -->
@@ -75,25 +87,41 @@
         <!-- Corpo: due pannelli -->
         <Grid Grid.Row="2" ColumnDefinitions="280,4,*">
 
-            <!-- Sinistra: elenco sorgenti -->
-            <DockPanel Grid.Column="0" Margin="8">
-                <TextBlock DockPanel.Dock="Top" Text="Sorgenti" FontWeight="Bold" Margin="0,0,0,6" />
-                <TextBlock DockPanel.Dock="Bottom" Text="{Binding FolderPath}"
-                           FontSize="11" Foreground="#88000000" TextTrimming="CharacterEllipsis"
-                           Margin="0,6,0,0" />
-                <ListBox Name="SourceList"
-                         ItemsSource="{Binding SourceFiles}"
-                         DoubleTapped="OnSourceDoubleTapped">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:SourceFileViewModel">
-                            <StackPanel>
-                                <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding Subtitle}" FontSize="11" Foreground="#88000000" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
+            <!-- Sinistra: schede sorgenti (cartella di lavoro / PDF da stampante) -->
+            <TabControl Grid.Column="0" Margin="8" ItemsSource="{Binding Panes}">
+                <TabControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FolderPaneViewModel">
+                        <TextBlock Text="{Binding Title}" />
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+                <TabControl.ContentTemplate>
+                    <DataTemplate x:DataType="vm:FolderPaneViewModel">
+                        <DockPanel Margin="0,6,0,0">
+                            <Button DockPanel.Dock="Top" Content="Cambia cartella…"
+                                    Margin="0,0,0,6" HorizontalAlignment="Stretch"
+                                    Command="{Binding ChangeFolderCommand}"
+                                    IsVisible="{Binding CanChangeFolder}" />
+                            <TextBlock DockPanel.Dock="Bottom" Text="{Binding FolderPath}"
+                                       FontSize="11" Foreground="#88000000" TextTrimming="CharacterEllipsis"
+                                       Margin="0,6,0,0" />
+                            <TextBlock DockPanel.Dock="Bottom" Text="{Binding EmptyHint}"
+                                       FontSize="11" Foreground="#99884400" TextWrapping="Wrap"
+                                       IsVisible="{Binding EmptyHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            <ListBox ItemsSource="{Binding Files}"
+                                     DoubleTapped="OnSourceDoubleTapped">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:SourceFileViewModel">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Subtitle}" FontSize="11" Foreground="#88000000" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </DataTemplate>
+                </TabControl.ContentTemplate>
+            </TabControl>
 
             <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="#22000000" />
 

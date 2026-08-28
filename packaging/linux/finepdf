@@ -1,0 +1,304 @@
+#!/usr/bin/env python3
+# FinePdf CUPS backend — writes each print job as a PDF into the folder the FinePdf app
+# configured (~/.config/FinePdf/settings.json -> "printerOutputFolder"), with a timestamped name.
+#
+# Installed as /usr/lib/cups/backend/finepdf, mode 0700 root:root, so CUPS runs it as root:
+# it resolves the job owner, reads that user's config, then drops privileges (fork + setuid)
+# before touching the filesystem or Ghostscript.
+#
+# CUPS backend contract:
+#   no args        -> print a device-discovery line, exit 0
+#   6 or 7 args    -> job-id user title copies options [data-file]; data on stdin if no file
+# Exit codes (cups/backend.h): 0 OK, 1 FAILED, 4 STOP, 5 CANCEL.
+
+import datetime
+import errno
+import json
+import os
+import pwd
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import unicodedata
+
+BACKEND_OK = 0
+BACKEND_FAILED = 1
+BACKEND_STOP = 4
+BACKEND_CANCEL = 5
+
+SYSTEM_CONF = "/etc/finepdf/backend.conf"
+LOG_PREFIX = "FinePdf:"
+
+
+def log(level, message):
+    sys.stderr.write(f"{level}: {LOG_PREFIX} {message}\n")
+    sys.stderr.flush()
+
+
+def discovery():
+    sys.stdout.write(
+        'direct finepdf:/ "Unknown" "FinePdf (stampante PDF virtuale)" '
+        '"MFG:FinePdf;MDL:FinePdf Virtual PDF;CLS:PRINTER;CMD:POSTSCRIPT;" ""\n'
+    )
+    sys.stdout.flush()
+    return BACKEND_OK
+
+
+def read_input_to_temp(data_file):
+    fd, path = tempfile.mkstemp(prefix="finepdf-in-", suffix=".dat")
+    try:
+        with os.fdopen(fd, "wb") as out:
+            if data_file and data_file != "-":
+                with open(data_file, "rb") as src:
+                    shutil.copyfileobj(src, out)
+            else:
+                shutil.copyfileobj(sys.stdin.buffer, out)
+    except Exception:
+        os.unlink(path)
+        raise
+    return path
+
+
+def looks_like_pdf(path):
+    try:
+        with open(path, "rb") as handle:
+            return handle.read(5).startswith(b"%PDF-")
+    except OSError:
+        return False
+
+
+def load_configured_folder(home):
+    settings = os.path.join(home, ".config", "FinePdf", "settings.json")
+    try:
+        with open(settings, "r", encoding="utf-8") as handle:
+            value = json.load(handle).get("printerOutputFolder")
+            if isinstance(value, str) and value.strip():
+                return os.path.expanduser(value.strip())
+    except (OSError, ValueError):
+        pass
+
+    try:
+        with open(SYSTEM_CONF, "r", encoding="utf-8") as handle:
+            for line in handle:
+                if line.startswith("OutputFolder="):
+                    candidate = line.split("=", 1)[1].strip()
+                    if candidate:
+                        return os.path.expanduser(candidate)
+    except OSError:
+        pass
+
+    return None
+
+
+def candidate_folders(home):
+    configured = load_configured_folder(home)
+    result = []
+    if configured:
+        result.append(configured)
+    result.append(os.path.join(home, "FinePdf"))
+    result.append(os.path.join(home, "Desktop"))
+    result.append(os.path.join(home, "Scrivania"))
+    result.append(home)
+    return result
+
+
+def pick_writable_folder(home):
+    for folder in candidate_folders(home):
+        real = os.path.realpath(folder)
+        try:
+            os.makedirs(real, exist_ok=True)
+        except OSError:
+            continue
+        if os.path.isdir(real) and os.access(real, os.W_OK | os.X_OK):
+            return real
+    return None
+
+
+def sanitize_token(text):
+    text = unicodedata.normalize("NFKD", text)
+    text = re.sub(r"[^A-Za-z0-9._ -]+", "-", text)
+    text = re.sub(r"\s+", "_", text).strip("._-")
+    return text[:60]
+
+
+_ORIGIN_NOISE = {"cups", "gpl", "ghostscript", "pscript", "unknown", ""}
+
+
+def _clean_origin(raw):
+    if not raw:
+        return ""
+    token = sanitize_token(raw.split()[0])
+    return "" if token.lower() in _ORIGIN_NOISE else token
+
+
+def origin_token(source_path, is_pdf):
+    """Best-effort 'which app produced this' for the __Origine filename part."""
+    if is_pdf:
+        if not shutil.which("pdfinfo"):
+            return ""
+        try:
+            out = subprocess.run(
+                ["pdfinfo", source_path], capture_output=True, text=True, timeout=10, check=False
+            ).stdout
+        except (OSError, subprocess.SubprocessError):
+            return ""
+        creator = producer = ""
+        for line in out.splitlines():
+            if line.startswith("Creator:"):
+                creator = line.split(":", 1)[1].strip()
+            elif line.startswith("Producer:"):
+                producer = line.split(":", 1)[1].strip()
+        return _clean_origin(creator) or _clean_origin(producer)
+
+    # PostScript: the originating app's DSC comment near the top of the stream.
+    try:
+        with open(source_path, "rb") as handle:
+            head = handle.read(8192).decode("latin-1", "ignore")
+    except OSError:
+        return ""
+    match = re.search(r"(?m)^%%Creator:\s*(.+?)\s*$", head)
+    return _clean_origin(match.group(1)) if match else ""
+
+
+def build_base_name(title):
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    name = stamp
+    clean_title = sanitize_token(title or "")
+    if clean_title and not re.match(r"(?i)^untitled", clean_title) and clean_title not in ("stdin", "-"):
+        name += "__" + clean_title
+    return name
+
+
+def reserve_output_path(folder, base_name, origin):
+    stem = base_name
+    if origin and origin.lower() not in base_name.lower():
+        stem = f"{base_name}__{origin}"
+    stem = stem.encode("utf-8")[:196].decode("utf-8", "ignore")
+
+    for n in range(0, 100):
+        leaf = stem if n == 0 else f"{stem}_{n:02d}"
+        path = os.path.join(folder, leaf + ".pdf")
+        try:
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+            os.close(fd)
+            return path
+        except FileExistsError:
+            continue
+    path = os.path.join(folder, f"{stem}_{os.getpid()}.pdf")
+    fd = os.open(path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o644)
+    os.close(fd)
+    return path
+
+
+def produce_pdf(input_path, is_pdf, folder, title):
+    part_path = os.path.join(folder, f".finepdf-{os.getpid()}.part")
+    if is_pdf:
+        shutil.copyfile(input_path, part_path)
+    else:
+        result = subprocess.run(
+            [
+                "gs", "-q", "-dNOPAUSE", "-dBATCH", "-dSAFER",
+                "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.7", "-dAutoRotatePages=/None",
+                "-dDownsampleColorImages=false", "-dDownsampleGrayImages=false",
+                "-dDownsampleMonoImages=false", "-dColorConversionStrategy=/LeaveColorUnchanged",
+                f"-sOutputFile={part_path}", "-f", input_path,
+            ],
+            capture_output=True, text=True, check=False,
+        )
+        if result.returncode != 0 or not os.path.exists(part_path):
+            log("ERROR", f"conversione Ghostscript non riuscita: {result.stderr.strip()[:400]}")
+            _silent_unlink(part_path)
+            return None
+
+    origin = origin_token(input_path, is_pdf)
+    final_path = reserve_output_path(folder, build_base_name(title), origin)
+    os.replace(part_path, final_path)
+    os.chmod(final_path, 0o644)
+    return final_path
+
+
+def _silent_unlink(path):
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+
+
+def run_as_user(entry, input_path, is_pdf, title):
+    pid = os.fork()
+    if pid == 0:
+        code = BACKEND_FAILED
+        try:
+            if os.geteuid() == 0:
+                os.setgid(entry.pw_gid)
+                try:
+                    os.initgroups(entry.pw_name, entry.pw_gid)
+                except OSError:
+                    os.setgroups([entry.pw_gid])
+                os.setuid(entry.pw_uid)
+            os.umask(0o022)
+            os.environ["HOME"] = entry.pw_dir
+
+            folder = pick_writable_folder(entry.pw_dir)
+            if folder is None:
+                log("ERROR", "nessuna cartella di output scrivibile")
+                sys.stderr.write("STATE: +finepdf-folder-unwritable\n")
+                os._exit(BACKEND_FAILED)
+
+            final_path = produce_pdf(input_path, is_pdf, folder, title)
+            if final_path is None:
+                os._exit(BACKEND_FAILED)
+
+            sys.stderr.write("STATE: -finepdf-folder-unwritable\n")
+            log("INFO", f"salvato {final_path}")
+            code = BACKEND_OK
+        except Exception as exc:  # noqa: BLE001 - last-resort guard in a forked child
+            log("ERROR", f"errore interno: {exc}")
+            code = BACKEND_FAILED
+        finally:
+            os._exit(code)
+
+    _, status = os.waitpid(pid, 0)
+    if os.WIFEXITED(status):
+        return os.WEXITSTATUS(status)
+    return BACKEND_FAILED
+
+
+def job_mode(argv):
+    title = argv[3] if len(argv) > 3 else ""
+    data_file = argv[6] if len(argv) > 6 else None
+
+    owner = argv[2] if len(argv) > 2 and argv[2] else "root"
+    try:
+        entry = pwd.getpwnam(owner)
+    except KeyError:
+        log("ERROR", f"utente sconosciuto: {owner}")
+        return BACKEND_FAILED
+
+    input_path = read_input_to_temp(data_file)
+    try:
+        if os.path.getsize(input_path) == 0:
+            log("ERROR", "dati di stampa vuoti")
+            return BACKEND_CANCEL
+
+        is_pdf = looks_like_pdf(input_path)
+        if os.geteuid() == 0:
+            os.chown(input_path, entry.pw_uid, entry.pw_gid)
+        return run_as_user(entry, input_path, is_pdf, title)
+    finally:
+        _silent_unlink(input_path)
+
+
+def main(argv):
+    if len(argv) == 1:
+        return discovery()
+    if len(argv) in (6, 7):
+        return job_mode(argv)
+    sys.stderr.write(f"Usage: {argv[0]} job-id user title copies options [file]\n")
+    return BACKEND_FAILED
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

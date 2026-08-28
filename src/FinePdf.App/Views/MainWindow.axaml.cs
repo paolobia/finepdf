@@ -35,10 +35,9 @@ public partial class MainWindow : Window
 
     private void OnSourceDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (DataContext is MainWindowViewModel vm &&
-            sender is ListBox { SelectedItem: SourceFileViewModel file })
+        if (sender is ListBox { DataContext: FolderPaneViewModel pane, SelectedItem: SourceFileViewModel file })
         {
-            vm.AddSource(file);
+            pane.RaiseFileActivated(file);
         }
     }
 

@@ -32,3 +32,7 @@ coverage/
 # Output PDF / file temporanei di lavoro
 /tmp-output/
 *.local.pdf
+
+# Python
+__pycache__/
+*.pyc

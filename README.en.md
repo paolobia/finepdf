@@ -7,6 +7,13 @@ delete, "N pages on one sheet" (N-up) imposition, rotation and printing.
 
 ## Features
 
+- **Two-tab sources panel**: *Cartella di lavoro* (browsable; accepts PDFs **and images**
+  `png/jpg/bmp/gif/webp`, converted to a one-page PDF each) and *PDF da stampante* (the virtual
+  printer's folder, read-only). Double-click a file in either tab to append its pages. Both
+  folders are remembered between runs.
+- **"FinePdf" virtual printer (Linux)**: registers a system printer; printing to it from any app
+  drops the PDF into the chosen folder. One authorisation prompt. See
+  [`docs/virtual-printer.md`](docs/virtual-printer.md).
 - **Merge**: double-click a PDF in the sources list → appends all of its pages.
 - **Reorder**: drag & drop in the preview, *Move up/down* buttons, `Alt+↑/↓`.
 - **Delete**: single or multiple selection, context menu or `Del`.
@@ -45,6 +52,10 @@ dotnet run --project src/FinePdf.App
 
 Requires **.NET SDK 8.0.x**. On Linux/macOS the projects are single-target `net8.0`; on Windows
 `FinePdf.App` switches to `net8.0-windows` for GDI printing (`WindowsPrintService`).
+
+The **virtual printer** (Linux) needs at runtime: `cups`, `cups-client`, `ghostscript`,
+`python3`, `polkit`/`policykit-1` (optionally `poppler-utils`). See
+[`docs/virtual-printer.md`](docs/virtual-printer.md).
 
 ## Layout
 

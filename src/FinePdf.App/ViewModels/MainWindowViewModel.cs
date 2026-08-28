@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FinePdf.App.Services;
@@ -16,13 +15,16 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private const int PreviewPixelWidth = 640;
 
-    private readonly IFolderSourceService _folder;
     private readonly IPdfDocumentService _documents;
     private readonly ISheetRenderService _renderer;
     private readonly IPdfComposer _composer;
     private readonly IFileDialogService _dialogs;
     private readonly IPrintService _printService;
     private readonly IPrintDialogService _printDialogs;
+    private readonly IDocumentImportService _import;
+    private readonly IAppSettingsService _settings;
+    private readonly IPrinterManager _printers;
+    private readonly IPrinterSetupDialogService _printerDialog;
 
     private readonly Composition _composition = new();
     private readonly UndoRedoStack _undo = new();
@@ -34,9 +36,6 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private bool _limitationsDismissed;
     private string? _lastSavePath;
     private NUpOrder _nUpOrder = NUpOrder.RowMajor;
-
-    [ObservableProperty]
-    private string _folderPath = string.Empty;
 
     [ObservableProperty]
     private string _statusText = string.Empty;
@@ -60,35 +59,62 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private double _selectedMarginMm;
 
     public MainWindowViewModel(
-        IFolderSourceService folder,
+        IFolderSourceService workFolder,
+        IFolderSourceService printerFolder,
         IPdfDocumentService documents,
         ISheetRenderService renderer,
         IPdfComposer composer,
         IFileDialogService dialogs,
         IPrintService printService,
-        IPrintDialogService printDialogs)
+        IPrintDialogService printDialogs,
+        IDocumentImportService import,
+        IAppSettingsService settings,
+        IPrinterManager printers,
+        IPrinterSetupDialogService printerDialog)
     {
-        _folder = folder;
         _documents = documents;
         _renderer = renderer;
         _composer = composer;
         _dialogs = dialogs;
         _printService = printService;
         _printDialogs = printDialogs;
+        _import = import;
+        _settings = settings;
+        _printers = printers;
+        _printerDialog = printerDialog;
+
+        WorkPane = new FolderPaneViewModel(
+            "Cartella di lavoro", canChangeFolder: true, workFolder, dialogs,
+            DescribeFileAsync, onFolderChanged: _settings.SetLastFolder);
+        PrinterPane = new FolderPaneViewModel(
+            "PDF da stampante", canChangeFolder: false, printerFolder, dialogs, DescribeFileAsync)
+        {
+            EmptyHint = "Installa la stampante virtuale per scegliere una cartella.",
+        };
+
+        WorkPane.FileActivated += (_, file) => AddSource(file);
+        PrinterPane.FileActivated += (_, file) => AddSource(file);
+        WorkPane.FilesChanged += (_, _) => OnPaneFilesChanged();
+        PrinterPane.FilesChanged += (_, _) => OnPaneFilesChanged();
 
         _undo.Changed += (_, _) => RefreshCommandState();
-        _folder.FilesChanged += OnFolderFilesChanged;
     }
 
-    public ObservableCollection<SheetViewModel> Sheets { get; } = [];
+    public FolderPaneViewModel WorkPane { get; }
 
-    public ObservableCollection<SourceFileViewModel> SourceFiles { get; } = [];
+    public FolderPaneViewModel PrinterPane { get; }
+
+    public IReadOnlyList<FolderPaneViewModel> Panes => [WorkPane, PrinterPane];
+
+    public ObservableCollection<SheetViewModel> Sheets { get; } = [];
 
     public IReadOnlyList<PaperSize> PaperSizes { get; } = PaperSize.Presets;
 
     public IReadOnlyList<PageOrientation> Orientations { get; } = [PageOrientation.Portrait, PageOrientation.Landscape];
 
     public IReadOnlyList<FitMode> FitModes { get; } = [FitMode.Fit, FitMode.ActualSize, FitMode.Fill];
+
+    public bool IsPrinterManagerSupported => _printers.IsSupported;
 
     /// <summary>Test hook: when false, sheet previews are not rendered automatically.</summary>
     public bool EnableAutoRender { get; set; } = true;
@@ -101,19 +127,19 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public string RedoLabel => _undo.CanRedo ? $"Ripeti — {_undo.NextRedoDescription}" : "Ripeti";
 
-    public void Initialize(string startFolder)
+    public void Initialize(string workFolder)
     {
-        try
+        if (WorkPane.TrySetFolder(workFolder))
         {
-            _folder.SetFolder(startFolder);
-            FolderPath = _folder.FolderPath ?? startFolder;
-            ReloadSourceFiles();
-            SetStatus($"{SourceFiles.Count} PDF nella cartella.");
+            _settings.SetLastFolder(WorkPane.FolderPath);
+            SetStatus($"{WorkPane.Files.Count} file nella cartella di lavoro.");
         }
-        catch (Exception ex) when (ex is DirectoryNotFoundException or IOException or UnauthorizedAccessException)
+        else
         {
-            SetStatus($"Impossibile aprire la cartella: {ex.Message}");
+            SetStatus("Impossibile aprire la cartella di lavoro.");
         }
+
+        PrinterPane.TrySetFolder(_settings.PrinterOutputFolder);
     }
 
     public void AddSource(SourceFileViewModel? file)
@@ -123,11 +149,22 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
+        string pdfPath;
         try
         {
-            SourceDocument document = _loaded.GetOrAdd(file.FullPath, _documents.Load);
+            pdfPath = _import.EnsurePdf(file.FullPath);
+        }
+        catch (DocumentImportException ex)
+        {
+            SetStatus($"{file.FileName}: {ex.Message}");
+            return;
+        }
+
+        try
+        {
+            SourceDocument document = _loaded.GetOrAdd(file.FullPath, _ => _documents.Load(pdfPath));
             Apply(new AddFilePagesAction(_composition, document));
-            SetStatus($"Aggiunte {document.PageCount} pagine da {document.FileName}.");
+            SetStatus($"Aggiunte {document.PageCount} pagine da {file.FileName}.");
         }
         catch (PdfLoadException ex)
         {
@@ -139,8 +176,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
-        _folder.FilesChanged -= OnFolderFilesChanged;
-        _folder.Dispose();
+        WorkPane.Dispose();
+        PrinterPane.Dispose();
+        _import.CleanupSession();
         _renderGate.Dispose();
         foreach (SheetViewModel vm in _sheetViewModels.Values)
         {
@@ -148,29 +186,63 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    [RelayCommand]
-    private async Task ChangeFolderAsync()
+    [RelayCommand(CanExecute = nameof(IsPrinterManagerSupported))]
+    private async Task VirtualPrinterAsync()
     {
-        string? picked = await _dialogs.PickFolderAsync(FolderPath);
-        if (picked is null)
+        PrinterInstallState state;
+        try
+        {
+            state = await Task.Run(_printers.GetState);
+        }
+        catch (PrinterManagerException)
+        {
+            state = PrinterInstallState.Unsupported;
+        }
+
+        string suggested = _settings.PrinterOutputFolder
+            ?? (PrinterPane.FolderPath.Length > 0 ? PrinterPane.FolderPath : DefaultPrinterFolder());
+
+        PrinterSetupResult? result = await _printerDialog.RequestAsync(state, suggested);
+        if (result is null || result.Action == PrinterSetupAction.None)
         {
             return;
         }
 
         try
         {
-            _folder.SetFolder(picked);
-            FolderPath = _folder.FolderPath ?? picked;
-            _loaded.Clear();
-            _renderer.InvalidateCache();
-            ReloadSourceFiles();
-            SetStatus($"{SourceFiles.Count} PDF nella cartella.");
+            if (result.Action == PrinterSetupAction.Uninstall)
+            {
+                await Task.Run(_printers.Uninstall);
+                SetStatus("Stampante «FinePdf» rimossa.");
+            }
+            else
+            {
+                SetStatus("Installazione stampante «FinePdf»… (potrebbe chiedere la password)");
+                await Task.Run(() => _printers.Install(result.Folder));
+                _settings.SetPrinterOutputFolder(result.Folder);
+                PrinterPane.TrySetFolder(result.Folder);
+                SetStatus($"Stampante «FinePdf» pronta → {result.Folder}");
+            }
         }
-        catch (Exception ex) when (ex is DirectoryNotFoundException or IOException or UnauthorizedAccessException)
+        catch (PrinterManagerException ex)
         {
-            SetStatus($"Impossibile aprire la cartella: {ex.Message}");
+            SetStatus(ex.Fault switch
+            {
+                PrinterManagerFault.PkexecMissing => "Manca pkexec (polkit): installalo e riprova.",
+                PrinterManagerFault.PermissionDenied => "Autorizzazione negata o annullata.",
+                PrinterManagerFault.SnapCupsUnsupported => "CUPS installato come snap: non supportato.",
+                PrinterManagerFault.GhostscriptMissing => "Manca ghostscript: «sudo apt install ghostscript».",
+                PrinterManagerFault.CupsUnavailable => "CUPS non disponibile: «sudo apt install cups cups-client».",
+                PrinterManagerFault.Unsupported => "Funzione disponibile solo su Linux.",
+                _ => $"Operazione non riuscita: {ex.Message}",
+            });
         }
     }
+
+    private static string DefaultPrinterFolder() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.DoNotVerify),
+            "FinePdf");
 
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo()
@@ -406,7 +478,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     private async Task PickAndSaveAsync()
     {
-        string? path = await _dialogs.PickSavePdfAsync("documento.pdf", FolderPath);
+        string? path = await _dialogs.PickSavePdfAsync("documento.pdf", WorkPane.FolderPath);
         if (path is not null)
         {
             SaveTo(path);
@@ -464,6 +536,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         {
             IsLimitationsNoticeOpen = true;
         }
+
         if (EnableAutoRender)
         {
             _ = RenderAllAsync();
@@ -535,49 +608,36 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void ReloadSourceFiles()
+    private async Task<string> DescribeFileAsync(string path)
     {
-        SourceFiles.Clear();
-        foreach (string path in _folder.Files)
+        try
         {
-            SourceFiles.Add(new SourceFileViewModel(path));
+            SourceDocument document = await Task.Run(() =>
+                _loaded.GetOrAdd(path, p => _documents.Load(_import.EnsurePdf(p))));
+            return document.PageCount == 1 ? "1 pagina" : $"{document.PageCount} pagine";
         }
-
-        _ = FillPageCountsAsync([.. SourceFiles]);
-    }
-
-    private async Task FillPageCountsAsync(IReadOnlyList<SourceFileViewModel> files)
-    {
-        foreach (SourceFileViewModel file in files)
+        catch (PdfLoadException ex)
         {
-            try
-            {
-                SourceDocument document = await Task.Run(() => _loaded.GetOrAdd(file.FullPath, _documents.Load));
-                file.Subtitle = document.PageCount == 1 ? "1 pagina" : $"{document.PageCount} pagine";
-            }
-            catch (PdfLoadException ex)
-            {
-                file.Subtitle = ex.IsPasswordProtected ? "protetto" : "non leggibile";
-            }
+            return ex.IsPasswordProtected ? "protetto" : "non leggibile";
+        }
+        catch (DocumentImportException)
+        {
+            return "non convertibile";
         }
     }
 
-    private void OnFolderFilesChanged(object? sender, EventArgs e)
+    private void OnPaneFilesChanged()
     {
-        Dispatcher.UIThread.Post(() =>
+        _renderer.InvalidateCache();
+        foreach (string path in _loaded.Keys.Where(p => !File.Exists(p)).ToList())
         {
-            _renderer.InvalidateCache();
-            foreach (string path in _loaded.Keys.Where(p => !File.Exists(p)).ToList())
-            {
-                _loaded.TryRemove(path, out _);
-            }
+            _loaded.TryRemove(path, out _);
+        }
 
-            ReloadSourceFiles();
-            if (EnableAutoRender)
-            {
-                _ = RenderAllAsync();
-            }
-        });
+        if (EnableAutoRender)
+        {
+            _ = RenderAllAsync();
+        }
     }
 
     public string SelectionSummary
@@ -684,6 +744,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         SaveCommand.NotifyCanExecuteChanged();
         SaveAsCommand.NotifyCanExecuteChanged();
         PrintCommand.NotifyCanExecuteChanged();
+        VirtualPrinterCommand.NotifyCanExecuteChanged();
     }
 
     private void SetStatus(string text) => StatusText = text;

@@ -24,4 +24,21 @@
     <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
   </ItemGroup>
 
+  <!-- File del pacchetto CUPS (stampante virtuale Linux), estratti a runtime da
+       EmbeddedPrinterInstallerAssets. LogicalName esplicito: sono fuori dal cono del progetto. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\packaging\linux\finepdf">
+      <LogicalName>FinePdf.Core.Packaging.Linux.finepdf</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\packaging\linux\finepdf.ppd">
+      <LogicalName>FinePdf.Core.Packaging.Linux.finepdf.ppd</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\packaging\linux\install.sh">
+      <LogicalName>FinePdf.Core.Packaging.Linux.install.sh</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\packaging\linux\uninstall.sh">
+      <LogicalName>FinePdf.Core.Packaging.Linux.uninstall.sh</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

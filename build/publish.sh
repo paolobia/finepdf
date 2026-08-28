@@ -30,4 +30,19 @@ dotnet publish "$ROOT/src/FinePdf.App/FinePdf.App.csproj" \
   "${EXTRA[@]}" \
   -o "$OUT"
 
+# Componenti CUPS per l'installazione manuale della stampante virtuale (solo Linux).
+case "$RID" in
+  linux-*)
+    echo "==> copio i file CUPS in $OUT/cups"
+    mkdir -p "$OUT/cups"
+    cp "$ROOT"/packaging/linux/finepdf \
+       "$ROOT"/packaging/linux/finepdf.ppd \
+       "$ROOT"/packaging/linux/install.sh \
+       "$ROOT"/packaging/linux/uninstall.sh \
+       "$ROOT"/packaging/linux/README.md \
+       "$OUT/cups/"
+    chmod +x "$OUT/cups/finepdf" "$OUT/cups/install.sh" "$OUT/cups/uninstall.sh"
+    ;;
+esac
+
 echo "==> fatto: $OUT"

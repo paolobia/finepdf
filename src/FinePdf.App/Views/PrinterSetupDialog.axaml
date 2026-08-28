@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FinePdf.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="240"
+        x:Class="FinePdf.App.Views.PrinterSetupDialog"
+        x:DataType="vm:PrinterSetupDialogViewModel"
+        Title="Stampante virtuale"
+        Width="460" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+    <StackPanel Margin="20" Spacing="12">
+
+        <TextBlock Text="{Binding StateText}" FontWeight="SemiBold" />
+
+        <TextBlock TextWrapping="Wrap" Foreground="#88000000"
+                   Text="Stampando verso «FinePdf» da qualsiasi applicazione, il PDF viene salvato nella cartella qui sotto. Serve un'autorizzazione (password) una volta sola." />
+
+        <Grid ColumnDefinitions="90,*,Auto" RowDefinitions="Auto">
+            <TextBlock Grid.Column="0" Text="Cartella" VerticalAlignment="Center" />
+            <TextBox Grid.Column="1" Margin="0,0,6,0" Text="{Binding OutputFolder}"
+                     IsEnabled="{Binding !IsInstalled}" />
+            <Button Grid.Column="2" Content="Sfoglia…" Command="{Binding BrowseCommand}"
+                    IsEnabled="{Binding !IsInstalled}" />
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Chiudi" Click="OnClose" />
+            <Button Content="Rimuovi" Click="OnUninstall" IsVisible="{Binding IsInstalled}" />
+            <Button Content="Installa" Click="OnInstall" IsDefault="True"
+                    IsVisible="{Binding !IsInstalled}" IsEnabled="{Binding CanInstall}" />
+        </StackPanel>
+    </StackPanel>
+</Window>
