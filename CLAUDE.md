@@ -151,14 +151,18 @@ motore di layout.
   Scrittura atomica, best-effort. **I nomi delle chiavi sono contratto col backend CUPS**.
 - **`IDocumentImportService`** — `EnsurePdf(path)`: PDF invariato; immagine (`png/jpg/bmp/gif/webp`)
   decodificata con SkiaSharp → PDF di una pagina con PdfSharp, in cache di sessione sotto temp.
-- **`IPrinterManager`** (solo Linux, `PrinterManagerFactory` → null-object altrove) — installa/
-  rimuove la stampante virtuale "FinePdf". `EmbeddedPrinterInstallerAssets` estrae
-  `packaging/linux/*` (embeddati in `FinePdf.Core`) in `~/.local/share/FinePdf/installer`, poi
-  `LinuxPrinterManager` esegue `pkexec install.sh <cartella>` / `pkexec uninstall.sh`. `install.sh`
-  installa il backend Python (`/usr/lib/cups/backend/finepdf`, `0700 root:root` → gira come root,
-  fa `fork`+`setuid` all'utente prima di scrivere), la PPD PostScript, `lpadmin -p FinePdf`.
-  Il backend converte PS→PDF con Ghostscript (o copia se già `%PDF`) nella cartella letta da
-  `settings.json`. Mapping exit code → `PrinterManagerFault` per i messaggi UI.
+- **`IPrinterManager`** (`PrinterManagerFactory` sceglie per SO; null-object fuori da Linux/Windows).
+  - **Linux** → `LinuxPrinterManager`: `EmbeddedPrinterInstallerAssets` estrae `packaging/linux/*`
+    (embeddati in `FinePdf.Core`) in `~/.local/share/FinePdf/installer`, poi `pkexec install.sh
+    <cartella>` / `pkexec uninstall.sh`. `install.sh` installa il backend Python
+    (`/usr/lib/cups/backend/finepdf`, `0700 root:root` → gira come root, `fork`+`setuid` all'utente
+    prima di scrivere), la PPD PostScript, `lpadmin -p FinePdf`. Il backend converte PS→PDF con
+    Ghostscript (o copia se già `%PDF`) nella cartella letta da `settings.json`. Exit code →
+    `PrinterManagerFault`.
+  - **Windows** → `WindowsFolderPrinterManager`: FinePdf **non** installa nulla. `Install(cartella)`
+    valida solo che la cartella esista; è l'utente a installare una stampante PDF gratuita di terzi
+    (Xodo/Documalis) e a puntarla lì. Il dialogo "Stampante virtuale…" appare in modalità
+    informativa (`PrinterSetupDialogViewModel.Advisory`). Vedi `docs/virtual-printer-windows.md`.
 - **`IUndoRedoStack`** — ogni operazione è un `IUndoableAction` (undo/redo completo):
   `AddFilePagesAction`, `MoveSheetAction`, `DeleteSheetsAction`, `RotateSheetAction`
   (tutti i placement del foglio, o uno solo), `MergeSheetsAction` (unisci i fogli selezionati
@@ -203,3 +207,4 @@ Milestone e stato: elenco qui sotto.
 - [x] M7 — Barra azioni sull'anteprima (stessi comandi del menu contestuale), auto-rotazione delle pagine in N-up (`NUpAction.autoOrient` + `FitOrientationAction`/comando "Adatta orientamento") — 74 test verdi
 - [x] M8 — Margini di pagina (`PageMargins`/`SetMarginsAction`, campo mm in toolbar, guida tratteggiata nell'anteprima), opzioni avanzate di stampa `chiave=valore` (`PrintOptions.RawOptions` → `lp -o`), screenshot nel README (`build/screenshots.sh`) — 82 test verdi
 - [x] M9 — Persistenza config (`AppSettingsService` → `~/.config/FinePdf/settings.json`, chiavi `lastFolder`/`printerOutputFolder`), pannello Sorgenti a 2 schede (`FolderPaneViewModel`: *Cartella di lavoro* navigabile + *PDF da stampante* sola lettura), import immagini in-process (`DocumentImportService`, `FolderSourceService` con estensioni configurabili), **stampante virtuale CUPS** (backend Python + PPD + `install.sh`/`uninstall.sh` in `packaging/linux/`, embeddati; `IPrinterManager`/`LinuxPrinterManager` via `pkexec`; dialogo "Stampante virtuale…"), job CI `cups-integration` — 111 test unit verdi
+- [x] M10 — Stampante virtuale su **Windows**: nessun install nostro; `WindowsFolderPrinterManager` valida solo la cartella, l'utente usa una stampante PDF gratuita di terzi (Xodo/Documalis) e FinePdf ne osserva la cartella (scheda *PDF da stampante* navigabile su Windows). Dialogo "Stampante virtuale…" in modalità informativa. `docs/virtual-printer-windows.md`. 120 test verdi

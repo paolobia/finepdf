@@ -16,7 +16,7 @@
         <TextBlock Text="{Binding StateText}" FontWeight="SemiBold" />
 
         <TextBlock TextWrapping="Wrap" Foreground="#88000000"
-                   Text="Stampando verso «FinePdf» da qualsiasi applicazione, il PDF viene salvato nella cartella qui sotto. Serve un'autorizzazione (password) una volta sola." />
+                   Text="{Binding Explanation}" />
 
         <Grid ColumnDefinitions="90,*,Auto" RowDefinitions="Auto">
             <TextBlock Grid.Column="0" Text="Cartella" VerticalAlignment="Center" />
@@ -29,7 +29,7 @@
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
             <Button Content="Chiudi" Click="OnClose" />
             <Button Content="Rimuovi" Click="OnUninstall" IsVisible="{Binding IsInstalled}" />
-            <Button Content="Installa" Click="OnInstall" IsDefault="True"
+            <Button Content="{Binding ConfirmLabel}" Click="OnInstall" IsDefault="True"
                     IsVisible="{Binding !IsInstalled}" IsEnabled="{Binding CanInstall}" />
         </StackPanel>
     </StackPanel>

@@ -11,9 +11,11 @@ delete, "N pages on one sheet" (N-up) imposition, rotation and printing.
   `png/jpg/bmp/gif/webp`, converted to a one-page PDF each) and *PDF da stampante* (the virtual
   printer's folder, read-only). Double-click a file in either tab to append its pages. Both
   folders are remembered between runs.
-- **"FinePdf" virtual printer (Linux)**: registers a system printer; printing to it from any app
-  drops the PDF into the chosen folder. One authorisation prompt. See
-  [`docs/virtual-printer.md`](docs/virtual-printer.md).
+- **"FinePdf" virtual printer**: on **Linux** it registers a real system printer (one
+  authorisation prompt) → [`docs/virtual-printer.md`](docs/virtual-printer.md); on **Windows**
+  you use a free third-party PDF printer and FinePdf just watches its folder →
+  [`docs/virtual-printer-windows.md`](docs/virtual-printer-windows.md). Either way the printed
+  PDFs show up in the *PDF da stampante* tab.
 - **Merge**: double-click a PDF in the sources list → appends all of its pages.
 - **Reorder**: drag & drop in the preview, *Move up/down* buttons, `Alt+↑/↓`.
 - **Delete**: single or multiple selection, context menu or `Del`.

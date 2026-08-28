@@ -1,5 +1,8 @@
 # Stampante virtuale "FinePdf" (Linux)
 
+> **Windows:** FinePdf non installa una stampante; ci si appoggia a una stampante PDF gratuita
+> di terzi e FinePdf ne osserva la cartella. Vedi [`virtual-printer-windows.md`](virtual-printer-windows.md).
+
 Registra una stampante di sistema chiamata **FinePdf**. Stampando lì da qualsiasi applicazione
 (Firefox, LibreOffice, evince…) il documento viene salvato come PDF nella cartella scelta, con
 un nome tipo `2026-08-28_09-15-42__Relazione__cairo.pdf`.

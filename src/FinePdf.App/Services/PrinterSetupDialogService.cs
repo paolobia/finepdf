@@ -20,7 +20,8 @@ public sealed class PrinterSetupDialogService(Func<Window?> ownerAccessor, IFile
             return null;
         }
 
-        var viewModel = new PrinterSetupDialogViewModel(state, suggestedFolder, _fileDialogs);
+        var viewModel = new PrinterSetupDialogViewModel(
+            state, suggestedFolder, _fileDialogs, advisory: OperatingSystem.IsWindows());
         return await PrinterSetupDialog.ShowAsync(owner, viewModel);
     }
 }

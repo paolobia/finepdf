@@ -86,10 +86,17 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         WorkPane = new FolderPaneViewModel(
             "Cartella di lavoro", canChangeFolder: true, workFolder, dialogs,
             DescribeFileAsync, onFolderChanged: _settings.SetLastFolder);
+
+        // On Windows FinePdf installs no printer: the user points the tab at whatever folder a
+        // third-party PDF printer saves to, so the tab is navigable and persists the choice.
+        bool windows = OperatingSystem.IsWindows();
         PrinterPane = new FolderPaneViewModel(
-            "PDF da stampante", canChangeFolder: false, printerFolder, dialogs, DescribeFileAsync)
+            "PDF da stampante", canChangeFolder: windows, printerFolder, dialogs, DescribeFileAsync,
+            onFolderChanged: windows ? _settings.SetPrinterOutputFolder : null)
         {
-            EmptyHint = "Installa la stampante virtuale per scegliere una cartella.",
+            EmptyHint = windows
+                ? "Installa una stampante PDF gratuita (pulsante «Stampante virtuale…») e scegli qui la sua cartella."
+                : "Installa la stampante virtuale per scegliere una cartella.",
         };
 
         WorkPane.FileActivated += (_, file) => AddSource(file);
@@ -217,11 +224,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
             else
             {
-                SetStatus("Installazione stampante «FinePdf»… (potrebbe chiedere la password)");
+                SetStatus(OperatingSystem.IsWindows()
+                    ? "Imposto la cartella…"
+                    : "Installazione stampante «FinePdf»… (potrebbe chiedere la password)");
                 await Task.Run(() => _printers.Install(result.Folder));
                 _settings.SetPrinterOutputFolder(result.Folder);
                 PrinterPane.TrySetFolder(result.Folder);
-                SetStatus($"Stampante «FinePdf» pronta → {result.Folder}");
+                SetStatus(OperatingSystem.IsWindows()
+                    ? $"Cartella «PDF da stampante» → {result.Folder}"
+                    : $"Stampante «FinePdf» pronta → {result.Folder}");
             }
         }
         catch (PrinterManagerException ex)

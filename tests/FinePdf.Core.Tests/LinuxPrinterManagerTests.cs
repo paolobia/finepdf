@@ -120,6 +120,9 @@ public class LinuxPrinterManagerTests
     [Fact]
     public void Factory_ReportsSupportMatchingPlatform()
     {
-        Assert.Equal(OperatingSystem.IsLinux(), PrinterManagerFactory.Create(new FakeProcessRunner()).IsSupported);
+        // Supported on Linux (CUPS backend) and Windows (third-party PDF printer folder); not elsewhere.
+        Assert.Equal(
+            OperatingSystem.IsLinux() || OperatingSystem.IsWindows(),
+            PrinterManagerFactory.Create(new FakeProcessRunner()).IsSupported);
     }
 }

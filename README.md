@@ -11,9 +11,11 @@ cancellazione, imposizione "N pagine in una" (N-up), rotazione e stampa delle pa
   `png/jpg/bmp/gif/webp`, convertite in PDF una pagina per immagine) e *PDF da stampante*
   (cartella della stampante virtuale, sola lettura). Doppio click su un file di una qualsiasi
   scheda → accoda le pagine alla composizione. Ultima cartella e cartella stampante ricordate.
-- **Stampante virtuale «FinePdf» (Linux)**: registra una stampante di sistema; stampandoci da
-  qualsiasi app il PDF finisce nella cartella scelta. Un solo prompt di autorizzazione.
-  Vedi [`docs/virtual-printer.md`](docs/virtual-printer.md).
+- **Stampante virtuale «FinePdf»**: su **Linux** registra una vera stampante di sistema
+  (un prompt di autorizzazione) → [`docs/virtual-printer.md`](docs/virtual-printer.md); su
+  **Windows** ci si appoggia a una stampante PDF gratuita di terzi e FinePdf ne osserva la
+  cartella → [`docs/virtual-printer-windows.md`](docs/virtual-printer-windows.md). In entrambi
+  i casi i PDF stampati compaiono nella scheda *PDF da stampante*.
 - **Unione**: doppio click su un PDF nell'elenco sorgenti → accoda tutte le sue pagine.
 - **Riordino**: drag & drop nell'anteprima, pulsanti *Sposta su/giù*, `Alt+↑/↓`.
 - **Cancellazione**: selezione singola o multipla, menu contestuale o `Canc`.
