@@ -57,6 +57,41 @@ public sealed class DocumentImportService : IDocumentImportService
         }
     }
 
+    public string ImportAsCopy(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        string ext = Path.GetExtension(path);
+        if (ImageExtensions.Contains(ext))
+        {
+            return EnsurePdf(path); // already produced inside the cache
+        }
+
+        if (!ext.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new DocumentImportException($"Formato non supportato: {Path.GetFileName(path)}");
+        }
+
+        lock (_gate)
+        {
+            Directory.CreateDirectory(_cacheDirectory);
+            string outputPath = Path.Combine(_cacheDirectory, CacheKey(path) + ".pdf");
+            if (!File.Exists(outputPath))
+            {
+                try
+                {
+                    File.Copy(path, outputPath, overwrite: true);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    throw new DocumentImportException($"Impossibile leggere: {Path.GetFileName(path)}", ex);
+                }
+            }
+
+            return outputPath;
+        }
+    }
+
     public void CleanupSession()
     {
         lock (_gate)

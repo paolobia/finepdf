@@ -42,7 +42,8 @@ public partial class App : Application
                 new DocumentImportService(),
                 settings,
                 PrinterManagerFactory.Create(processRunner),
-                new PrinterSetupDialogService(() => window, dialogs));
+                new PrinterSetupDialogService(() => window, dialogs),
+                new RecycleBinService(processRunner));
 
             window.DataContext = viewModel;
             window.Closed += (_, _) => viewModel.Dispose();

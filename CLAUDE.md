@@ -151,6 +151,13 @@ motore di layout.
   Scrittura atomica, best-effort. **I nomi delle chiavi sono contratto col backend CUPS**.
 - **`IDocumentImportService`** — `EnsurePdf(path)`: PDF invariato; immagine (`png/jpg/bmp/gif/webp`)
   decodificata con SkiaSharp → PDF di una pagina con PdfSharp, in cache di sessione sotto temp.
+  `ImportAsCopy(path)`: come sopra ma copia SEMPRE in cache (usato quando l'originale verrà
+  cestinato).
+- **`IRecycleBinService`** — `TryMoveToTrash(path)`: Windows `SHFileOperation` con undo; Linux
+  `gio trash` → fallback spec freedesktop `$XDG_DATA_HOME/Trash`. Usato quando, aggiungendo un
+  PDF dalla scheda *PDF da stampante* con "Cestina i PDF dopo l'aggiunta" attivo
+  (`AppSettingsService.TrashPrinterPdfs`, chiave `trashPrinterPdfs`, default true), l'originale
+  va nel cestino.
 - **`IPrinterManager`** (`PrinterManagerFactory` sceglie per SO; null-object fuori da Linux/Windows).
   - **Linux** → `LinuxPrinterManager`: `EmbeddedPrinterInstallerAssets` estrae `packaging/linux/*`
     (embeddati in `FinePdf.Core`) in `~/.local/share/FinePdf/installer`, poi `pkexec install.sh

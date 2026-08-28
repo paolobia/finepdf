@@ -17,6 +17,14 @@ public interface IDocumentImportService
     /// <exception cref="FinePdf.DocumentImportException">The file could not be converted.</exception>
     string EnsurePdf(string path);
 
+    /// <summary>
+    /// Like <see cref="EnsurePdf"/> but ALWAYS returns a path inside the session cache — a PDF
+    /// is copied in rather than referenced in place. Use when the original may be moved/deleted
+    /// (e.g. trashed) after import.
+    /// </summary>
+    /// <exception cref="FinePdf.DocumentImportException">The file could not be converted.</exception>
+    string ImportAsCopy(string path);
+
     /// <summary>Deletes the per-session conversion cache. Call on shutdown.</summary>
     void CleanupSession();
 }

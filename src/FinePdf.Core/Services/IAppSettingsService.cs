@@ -17,9 +17,14 @@ public interface IAppSettingsService
     /// <summary>Folder the "FinePdf" virtual printer drops PDFs into, or <c>null</c>.</summary>
     string? PrinterOutputFolder { get; }
 
+    /// <summary>Move a printer-folder PDF to the recycle bin after it is added to the composition. Default <c>true</c>.</summary>
+    bool TrashPrinterPdfs { get; }
+
     void SetLastFolder(string absolutePath);
 
     void SetPrinterOutputFolder(string absolutePath);
+
+    void SetTrashPrinterPdfs(bool value);
 
     /// <summary>Absolute path of the backing JSON file (may not exist yet).</summary>
     string SettingsFilePath { get; }

@@ -107,6 +107,11 @@
                             <TextBlock DockPanel.Dock="Bottom" Text="{Binding EmptyHint}"
                                        FontSize="11" Foreground="#99884400" TextWrapping="Wrap"
                                        IsVisible="{Binding EmptyHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            <CheckBox DockPanel.Dock="Bottom" Margin="0,4,0,0"
+                                      Content="Cestina i PDF dopo l'aggiunta"
+                                      IsChecked="{Binding TrashAfterAdd}"
+                                      IsVisible="{Binding CanTrashAfterAdd}"
+                                      ToolTip.Tip="Dopo aver accodato le pagine, sposta il PDF di origine nel cestino (recuperabile)" />
                             <ListBox ItemsSource="{Binding Files}"
                                      DoubleTapped="OnSourceDoubleTapped">
                                 <ListBox.ItemTemplate>

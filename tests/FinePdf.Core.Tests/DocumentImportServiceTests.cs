@@ -53,6 +53,29 @@ public class DocumentImportServiceTests
     }
 
     [Fact]
+    public void ImportAsCopy_ForPdf_ReturnsCachedCopyThatSurvivesOriginalDeletion()
+    {
+        using var dir = new TempDir();
+        var service = new DocumentImportService();
+        try
+        {
+            string pdf = PdfTestFactory.CreatePdf(dir.Path, "in.pdf", 2);
+
+            string copy = service.ImportAsCopy(pdf);
+
+            Assert.NotEqual(pdf, copy);
+            Assert.Equal(copy, service.ImportAsCopy(pdf));
+
+            File.Delete(pdf);
+            Assert.Equal(2, new PdfSharpDocumentService().Load(copy).PageCount);
+        }
+        finally
+        {
+            service.CleanupSession();
+        }
+    }
+
+    [Fact]
     public void EnsurePdf_IsCached_SecondCallReturnsSameFile()
     {
         using var dir = new TempDir();

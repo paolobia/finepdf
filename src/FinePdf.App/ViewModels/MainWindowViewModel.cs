@@ -25,6 +25,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IAppSettingsService _settings;
     private readonly IPrinterManager _printers;
     private readonly IPrinterSetupDialogService _printerDialog;
+    private readonly IRecycleBinService _recycleBin;
 
     private readonly Composition _composition = new();
     private readonly UndoRedoStack _undo = new();
@@ -70,7 +71,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         IDocumentImportService import,
         IAppSettingsService settings,
         IPrinterManager printers,
-        IPrinterSetupDialogService printerDialog)
+        IPrinterSetupDialogService printerDialog,
+        IRecycleBinService recycleBin)
     {
         _documents = documents;
         _renderer = renderer;
@@ -82,6 +84,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _settings = settings;
         _printers = printers;
         _printerDialog = printerDialog;
+        _recycleBin = recycleBin;
 
         WorkPane = new FolderPaneViewModel(
             "Cartella di lavoro", canChangeFolder: true, workFolder, dialogs,
@@ -92,7 +95,10 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         bool windows = OperatingSystem.IsWindows();
         PrinterPane = new FolderPaneViewModel(
             "PDF da stampante", canChangeFolder: windows, printerFolder, dialogs, DescribeFileAsync,
-            onFolderChanged: windows ? _settings.SetPrinterOutputFolder : null)
+            onFolderChanged: windows ? _settings.SetPrinterOutputFolder : null,
+            canTrashAfterAdd: recycleBin.IsSupported,
+            initialTrashAfterAdd: recycleBin.IsSupported && _settings.TrashPrinterPdfs,
+            onTrashAfterAddChanged: _settings.SetTrashPrinterPdfs)
         {
             EmptyHint = windows
                 ? "Installa una stampante PDF gratuita (pulsante «Stampante virtuale…») e scegli qui la sua cartella."
@@ -100,7 +106,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         };
 
         WorkPane.FileActivated += (_, file) => AddSource(file);
-        PrinterPane.FileActivated += (_, file) => AddSource(file);
+        PrinterPane.FileActivated += (_, file) => ConsumePrinterFile(file);
         WorkPane.FilesChanged += (_, _) => OnPaneFilesChanged();
         PrinterPane.FilesChanged += (_, _) => OnPaneFilesChanged();
 
@@ -149,22 +155,22 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         PrinterPane.TrySetFolder(_settings.PrinterOutputFolder);
     }
 
-    public void AddSource(SourceFileViewModel? file)
+    public bool AddSource(SourceFileViewModel? file, bool importAsCopy = false)
     {
         if (file is null)
         {
-            return;
+            return false;
         }
 
         string pdfPath;
         try
         {
-            pdfPath = _import.EnsurePdf(file.FullPath);
+            pdfPath = importAsCopy ? _import.ImportAsCopy(file.FullPath) : _import.EnsurePdf(file.FullPath);
         }
         catch (DocumentImportException ex)
         {
             SetStatus($"{file.FileName}: {ex.Message}");
-            return;
+            return false;
         }
 
         try
@@ -172,12 +178,32 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
             SourceDocument document = _loaded.GetOrAdd(file.FullPath, _ => _documents.Load(pdfPath));
             Apply(new AddFilePagesAction(_composition, document));
             SetStatus($"Aggiunte {document.PageCount} pagine da {file.FileName}.");
+            return true;
         }
         catch (PdfLoadException ex)
         {
             SetStatus(ex.IsPasswordProtected
                 ? $"{file.FileName}: PDF protetto da password."
                 : $"{file.FileName}: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Add a file from the "PDF da stampante" tab, then — if enabled — move the original to the
+    /// recycle bin (its pages were copied into the session cache first, so the composition still
+    /// works after the source is gone).
+    /// </summary>
+    private void ConsumePrinterFile(SourceFileViewModel file)
+    {
+        if (!AddSource(file, importAsCopy: PrinterPane.TrashAfterAdd))
+        {
+            return;
+        }
+
+        if (PrinterPane.TrashAfterAdd && _recycleBin.TryMoveToTrash(file.FullPath))
+        {
+            SetStatus($"«{file.FileName}» aggiunto e spostato nel cestino.");
         }
     }
 

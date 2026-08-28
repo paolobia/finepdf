@@ -74,6 +74,31 @@ public class AppSettingsServiceTests
     }
 
     [Fact]
+    public void TrashPrinterPdfs_DefaultsToTrue_AndRoundTrips()
+    {
+        using var dir = new TempDir();
+        Assert.True(new AppSettingsService(dir.Path).TrashPrinterPdfs);
+
+        new AppSettingsService(dir.Path).SetTrashPrinterPdfs(false);
+        Assert.False(new AppSettingsService(dir.Path).TrashPrinterPdfs);
+
+        new AppSettingsService(dir.Path).SetTrashPrinterPdfs(true);
+        Assert.True(new AppSettingsService(dir.Path).TrashPrinterPdfs);
+    }
+
+    [Fact]
+    public void SetTrashPrinterPdfs_KeepsFolders()
+    {
+        using var dir = new TempDir();
+        var service = new AppSettingsService(dir.Path);
+        service.SetLastFolder(dir.Path);
+        service.SetTrashPrinterPdfs(false);
+
+        Assert.Equal(dir.Path, service.LastFolder);
+        Assert.False(service.TrashPrinterPdfs);
+    }
+
+    [Fact]
     public void SettingsFile_UsesTheContractKeyNames()
     {
         using var dir = new TempDir();

@@ -18,6 +18,7 @@ public sealed partial class FolderPaneViewModel : ViewModelBase, IDisposable
     private readonly IFileDialogService _dialogs;
     private readonly Func<string, Task<string>> _describe;
     private readonly Action<string>? _onFolderChanged;
+    private readonly Action<bool>? _onTrashAfterAddChanged;
 
     [ObservableProperty]
     private string _folderPath = string.Empty;
@@ -25,26 +26,38 @@ public sealed partial class FolderPaneViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private string _emptyHint = string.Empty;
 
+    [ObservableProperty]
+    private bool _trashAfterAdd;
+
     public FolderPaneViewModel(
         string title,
         bool canChangeFolder,
         IFolderSourceService source,
         IFileDialogService dialogs,
         Func<string, Task<string>> describe,
-        Action<string>? onFolderChanged = null)
+        Action<string>? onFolderChanged = null,
+        bool canTrashAfterAdd = false,
+        bool initialTrashAfterAdd = false,
+        Action<bool>? onTrashAfterAddChanged = null)
     {
         Title = title;
         CanChangeFolder = canChangeFolder;
+        CanTrashAfterAdd = canTrashAfterAdd;
+        _trashAfterAdd = initialTrashAfterAdd;
         _source = source;
         _dialogs = dialogs;
         _describe = describe;
         _onFolderChanged = onFolderChanged;
+        _onTrashAfterAddChanged = onTrashAfterAddChanged;
         _source.FilesChanged += OnSourceFilesChanged;
     }
 
     public string Title { get; }
 
     public bool CanChangeFolder { get; }
+
+    /// <summary>Whether this pane offers the "trash the PDF after adding it" option.</summary>
+    public bool CanTrashAfterAdd { get; }
 
     public ObservableCollection<SourceFileViewModel> Files { get; } = [];
 
@@ -120,6 +133,8 @@ public sealed partial class FolderPaneViewModel : ViewModelBase, IDisposable
             file.Subtitle = await _describe(file.FullPath);
         }
     }
+
+    partial void OnTrashAfterAddChanged(bool value) => _onTrashAfterAddChanged?.Invoke(value);
 
     private void OnSourceFilesChanged(object? sender, EventArgs e) =>
         Dispatcher.UIThread.Post(() =>

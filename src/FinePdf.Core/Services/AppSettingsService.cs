@@ -31,10 +31,14 @@ public sealed class AppSettingsService : IAppSettingsService
 
     public string? PrinterOutputFolder => ReadRooted(f => f.PrinterOutputFolder);
 
+    public bool TrashPrinterPdfs => Read().TrashPrinterPdfs ?? true;
+
     public void SetLastFolder(string absolutePath) => Update(f => f with { LastFolder = absolutePath });
 
     public void SetPrinterOutputFolder(string absolutePath) =>
         Update(f => f with { PrinterOutputFolder = absolutePath });
+
+    public void SetTrashPrinterPdfs(bool value) => Update(f => f with { TrashPrinterPdfs = value });
 
     private string? ReadRooted(Func<SettingsFile, string?> pick)
     {
@@ -112,5 +116,8 @@ public sealed class AppSettingsService : IAppSettingsService
 
         [JsonPropertyName("printerOutputFolder")]
         public string? PrinterOutputFolder { get; init; }
+
+        [JsonPropertyName("trashPrinterPdfs")]
+        public bool? TrashPrinterPdfs { get; init; }
     }
 }
