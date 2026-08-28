@@ -21,6 +21,10 @@ sudo ./cups/install.sh ~/FinePdf      # installa e imposta la cartella
 sudo ./cups/uninstall.sh              # rimuove tutto
 ```
 
+`install.sh` termina con una **stampa di prova**: registra la coda, invia un job di una
+riga e verifica che un PDF venga davvero prodotto; se non compare esce con codice 6 e
+indica i log da controllare. Per saltarla: `FINEPDF_SKIP_SELFTEST=1 sudo ./cups/install.sh …`.
+
 ### Dipendenze
 
 | Componente | Debian/Ubuntu | Arch/Manjaro | Obbligatorio |

@@ -81,7 +81,8 @@ public sealed class FolderSourceService : IFolderSourceService
             ? []
             : [.. Directory.EnumerateFiles(folder)
                 .Where(f => _extensions.Contains(Path.GetExtension(f)))
-                .OrderBy(static f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)];
+                .OrderByDescending(LastWriteUtcOrMin)
+                .ThenBy(static f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)];
 
         bool changed;
         lock (_gate)
@@ -96,6 +97,18 @@ public sealed class FolderSourceService : IFolderSourceService
         if (changed)
         {
             FilesChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private static DateTime LastWriteUtcOrMin(string path)
+    {
+        try
+        {
+            return File.GetLastWriteTimeUtc(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return DateTime.MinValue;
         }
     }
 

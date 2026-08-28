@@ -6,7 +6,7 @@ namespace FinePdf.Core.Tests;
 public class FolderSourceServiceTests
 {
     [Fact]
-    public void SetFolder_ListsOnlyPdfFiles_Sorted()
+    public void SetFolder_ListsOnlyPdfFiles_MostRecentFirst()
     {
         using var dir = new TempDir();
         PdfTestFactory.CreatePdf(dir.Path, "b.pdf", 1);
@@ -14,11 +14,16 @@ public class FolderSourceServiceTests
         PdfTestFactory.CreatePdf(dir.Path, "c.PDF", 1);
         File.WriteAllText(dir.File("notes.txt"), "ignore me");
 
+        var now = DateTime.UtcNow;
+        File.SetLastWriteTimeUtc(dir.File("b.pdf"), now.AddMinutes(-1));
+        File.SetLastWriteTimeUtc(dir.File("a.pdf"), now.AddMinutes(-3));
+        File.SetLastWriteTimeUtc(dir.File("c.PDF"), now);
+
         using var service = new FolderSourceService(enableWatcher: false);
         service.SetFolder(dir.Path);
 
         Assert.Equal(
-            ["a.pdf", "b.pdf", "c.PDF"],
+            ["c.PDF", "b.pdf", "a.pdf"],
             service.Files.Select(Path.GetFileName).ToArray());
     }
 
@@ -70,7 +75,7 @@ public class FolderSourceServiceTests
         extended.SetFolder(dir.Path);
         Assert.Equal(
             ["doc.pdf", "photo.JPG", "scan.png"],
-            extended.Files.Select(Path.GetFileName).ToArray());
+            extended.Files.Select(Path.GetFileName).OrderBy(n => n).ToArray());
 
         using var pdfOnly = new FolderSourceService(enableWatcher: false);
         pdfOnly.SetFolder(dir.Path);

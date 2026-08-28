@@ -3,6 +3,7 @@
 #     sudo ./install.sh /percorso/cartella-output
 # The FinePdf app calls this via pkexec. Exit codes are consumed by LinuxPrinterManager:
 #   0 ok | 3 snap-only CUPS | 4 ghostscript missing | 5 cups/permission problem
+#   6 registered but the self-test print produced no PDF
 set -eu
 
 OUT_FOLDER="${1:-}"
@@ -18,6 +19,7 @@ MARK_END="# <<< FinePdf <<<"
 # Prefer the distro's CUPS tools over any snap shim that might shadow them on PATH.
 sysbin() { if [ -x "/usr/bin/$1" ]; then printf '/usr/bin/%s' "$1"; else printf '%s' "$1"; fi; }
 LPADMIN="$(sysbin lpadmin)"
+LP="$(sysbin lp)"
 CUPSENABLE="$(sysbin cupsenable)"
 CUPSACCEPT="$(sysbin cupsaccept)"
 CUPSTESTPPD="$(sysbin cupstestppd)"
@@ -56,9 +58,12 @@ if [ -x "$CUPSTESTPPD" ] || command -v cupstestppd >/dev/null 2>&1; then
     "$CUPSTESTPPD" -q "$PPD_DEST" || { echo "ERROR: PPD non valida" >&2; exit 5; }
 fi
 
-# 3. system-wide fallback config (per-user settings.json still wins)
+# 3. system-wide fallback config (per-user settings.json still wins).
+#    Start pointed at a scratch dir so the self-test in step 7 lands there.
 install -d -o root -g root -m 0755 /etc/finepdf
-printf 'OutputFolder=%s\n' "$OUT_FOLDER" > /etc/finepdf/backend.conf
+SMOKE_DIR="$(mktemp -d /tmp/finepdf-smoke.XXXXXX)"
+chmod 0777 "$SMOKE_DIR"
+printf 'OutputFolder=%s\n' "$SMOKE_DIR" > /etc/finepdf/backend.conf
 chmod 0644 /etc/finepdf/backend.conf
 
 # 4. AppArmor: only needed if the cupsd profile is hardened (no third_party transition)
@@ -100,5 +105,32 @@ fi
 systemctl try-restart cups.service 2>/dev/null \
     || systemctl try-restart org.cups.cupsd.service 2>/dev/null \
     || service cups restart 2>/dev/null || true
+
+# 7. self-test: push a one-line job and check a PDF really lands in the scratch dir
+if [ "${FINEPDF_SKIP_SELFTEST:-}" != "1" ]; then
+    printf 'FinePdf: prova di installazione %s\n' "$(date)" \
+        | "$LP" -d "$PRINTER" -t "FinePdf self-test" >/dev/null 2>&1 || true
+    i=0
+    while [ "$i" -lt 25 ]; do
+        [ -n "$(find "$SMOKE_DIR" -maxdepth 1 -name '*.pdf' -print -quit 2>/dev/null)" ] && break
+        sleep 1
+        i=$((i + 1))
+    done
+    produced="$(find "$SMOKE_DIR" -maxdepth 1 -name '*.pdf' -print -quit 2>/dev/null || true)"
+    # restore the real output folder before reporting
+    printf 'OutputFolder=%s\n' "$OUT_FOLDER" > /etc/finepdf/backend.conf
+    chmod 0644 /etc/finepdf/backend.conf
+    rm -rf "$SMOKE_DIR"
+    if [ -z "$produced" ]; then
+        echo "ERROR: la stampante è registrata ma la stampa di prova non ha prodotto alcun PDF." >&2
+        echo "       Controlla:  journalctl -u cups --since '2 min ago'  e  /var/log/cups/error_log" >&2
+        exit 6
+    fi
+    echo "OK: prova di stampa riuscita"
+else
+    printf 'OutputFolder=%s\n' "$OUT_FOLDER" > /etc/finepdf/backend.conf
+    chmod 0644 /etc/finepdf/backend.conf
+    rm -rf "$SMOKE_DIR"
+fi
 
 echo "OK: stampante $PRINTER installata -> $OUT_FOLDER"

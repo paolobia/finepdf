@@ -9,7 +9,10 @@ public interface IFolderSourceService : IDisposable
     /// <summary>Absolute path of the folder currently watched, or <c>null</c> before the first <see cref="SetFolder"/>.</summary>
     string? FolderPath { get; }
 
-    /// <summary>Absolute paths of the PDF files in <see cref="FolderPath"/>, sorted by file name.</summary>
+    /// <summary>
+    /// Absolute paths of the matching files in <see cref="FolderPath"/>, most recently
+    /// modified first (ties broken by file name).
+    /// </summary>
     IReadOnlyList<string> Files { get; }
 
     event EventHandler? FilesChanged;

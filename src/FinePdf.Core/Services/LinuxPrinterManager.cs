@@ -91,6 +91,9 @@ public sealed class LinuxPrinterManager : IPrinterManager
                 "Ghostscript non è installato."),
             5 => (PrinterManagerFault.CupsUnavailable,
                 "CUPS non è disponibile."),
+            6 => (PrinterManagerFault.InstallFailed,
+                "Stampante registrata ma la stampa di prova non ha prodotto alcun PDF. " +
+                "Vedi /var/log/cups/error_log."),
             126 or 127 => (PrinterManagerFault.PermissionDenied,
                 "Autorizzazione negata o annullata."),
             _ => (PrinterManagerFault.InstallFailed, Describe(result)),

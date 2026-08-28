@@ -73,6 +73,7 @@ public class LinuxPrinterManagerTests
     [InlineData(3, PrinterManagerFault.SnapCupsUnsupported)]
     [InlineData(4, PrinterManagerFault.GhostscriptMissing)]
     [InlineData(5, PrinterManagerFault.CupsUnavailable)]
+    [InlineData(6, PrinterManagerFault.InstallFailed)]
     public void Install_MapsScriptExitCodeToFault(int exit, PrinterManagerFault expected)
     {
         (LinuxPrinterManager manager, FakeProcessRunner runner, _) = Build();
