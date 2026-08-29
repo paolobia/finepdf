@@ -13,10 +13,37 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
 {
     private const int MaxCacheEntries = 300;
 
+    // out = in * 1.12 + 0.05 per RGB channel: lifts greys/dark scans toward white, keeps text dark.
+    private static readonly float[] BrightenMatrix =
+    [
+        1.12f, 0f, 0f, 0f, 0.05f,
+        0f, 1.12f, 0f, 0f, 0.05f,
+        0f, 0f, 1.12f, 0f, 0.05f,
+        0f, 0f, 0f, 1f, 0f,
+    ];
+
     private readonly ConcurrentDictionary<string, byte[]> _sourceBytes = new(StringComparer.Ordinal);
     private readonly Dictionary<string, byte[]> _cache = new(StringComparer.Ordinal);
     private readonly LinkedList<string> _lru = new();
     private readonly object _gate = new();
+
+    private bool _brightenContent = true;
+
+    /// <inheritdoc />
+    public bool BrightenContent
+    {
+        get => _brightenContent;
+        set
+        {
+            if (_brightenContent == value)
+            {
+                return;
+            }
+
+            _brightenContent = value;
+            InvalidateCache();
+        }
+    }
 
     /// <inheritdoc />
     public byte[] RenderSheetPng(Composition composition, Sheet sheet, int pixelWidth)
@@ -98,6 +125,8 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
         FitMode fit = sheet.EffectiveFitMode(composition);
         int placementCount = sheet.Placements.Count;
 
+        using SKColorFilter? brighten = _brightenContent ? SKColorFilter.CreateColorMatrix(BrightenMatrix) : null;
+
         for (int i = 0; i < placementCount; i++)
         {
             Placement placement = sheet.Placements[i];
@@ -130,7 +159,7 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
             canvas.Save();
             canvas.Translate((float)(placed.CenterX * scale), (float)(placed.CenterY * scale));
             canvas.RotateDegrees(placed.RotationDegrees);
-            using (var bitmapPaint = new SKPaint { FilterQuality = SKFilterQuality.Medium, IsAntialias = true })
+            using (var bitmapPaint = new SKPaint { FilterQuality = SKFilterQuality.Medium, IsAntialias = true, ColorFilter = brighten })
             {
                 canvas.DrawBitmap(pageBitmap, dest, bitmapPaint);
             }
@@ -182,13 +211,14 @@ public sealed class SkiaSheetRenderService : ISheetRenderService
         }
     }
 
-    private static string BuildKey(Composition composition, Sheet sheet, int pixelWidth)
+    private string BuildKey(Composition composition, Sheet sheet, int pixelWidth)
     {
         var sb = new StringBuilder();
         (double width, double height) = composition.SheetSizePoints;
         sb.Append(width.ToString("F1", CultureInfo.InvariantCulture)).Append('x')
           .Append(height.ToString("F1", CultureInfo.InvariantCulture)).Append('|')
           .Append(pixelWidth).Append('|')
+          .Append(_brightenContent ? 'B' : 'b').Append('|')
           .Append(sheet.EffectiveFitMode(composition)).Append('|')
           .Append(sheet.NUpOrder).Append('|')
           .Append(composition.Margins.Left.ToString("F1", CultureInfo.InvariantCulture)).Append(',')

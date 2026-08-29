@@ -138,7 +138,10 @@ motore di layout.
   pagine in una" è semplicemente un `Sheet` con più `Placement`, nessun servizio separato.
 - **`ISheetRenderService`** — renderizza un `Sheet` in immagine per l'anteprima, con la stessa
   matematica di layout del `PdfComposer` (così l'anteprima è fedele alla stampa). Cache LRU in
-  memoria + su disco (cartella temp); rendering asincrono, mai sul thread UI.
+  memoria + su disco (cartella temp); rendering asincrono, mai sul thread UI. `BrightenContent`
+  (default `true`, casella «Schiarisci PDF» in toolbar) applica un filtro colore
+  lighten/contrasto leggero al solo contenuto in anteprima (scansioni scure / sfondi grigi):
+  non tocca il PDF salvato o stampato; cambiarlo svuota la cache.
 - **`IPrintService`** — `PrintServiceFactory` sceglie l'implementazione per piattaforma:
   - Linux → `LinuxCupsPrintService`: `lpstat -e` per l'elenco, `lp` per l'invio; i processi
     passano per `IProcessRunner` (mockabile). `PrintOptions.RawOptions` (`chiave=valore`) sono
@@ -156,8 +159,13 @@ motore di layout.
 - **`IRecycleBinService`** — `TryMoveToTrash(path)`: Windows `SHFileOperation` con undo; Linux
   `gio trash` → fallback spec freedesktop `$XDG_DATA_HOME/Trash`. Usato quando, aggiungendo un
   PDF dalla scheda *PDF da stampante* con "Cestina i PDF dopo l'aggiunta" attivo
-  (`AppSettingsService.TrashPrinterPdfs`, chiave `trashPrinterPdfs`, default true), l'originale
-  va nel cestino.
+  (`AppSettingsService.TrashPrinterPdfs`, chiave `trashPrinterPdfs`, default true), il file va
+  nel cestino. **Cestinamento differito**: `ConsumePrinterFile` accoda le pagine, copia il PDF
+  in cache (`ImportAsCopy`), lo nasconde dalla lista (`FolderPaneViewModel.Hide`, non tocca il
+  disco) e ne registra il percorso in `_pendingTrash`; lo spostamento nel cestino avviene solo
+  in `MainWindowViewModel.Dispose()` (uscita reale, dopo l'eventuale conferma «modifiche non
+  salvate»). Così ruotare/ricomporre continua a rileggere il file per tutta la sessione e
+  nulla viene cancellato se l'utente annulla la chiusura.
 - **`IPrinterManager`** (`PrinterManagerFactory` sceglie per SO; null-object fuori da Linux/Windows).
   - **Linux** → `LinuxPrinterManager`: `EmbeddedPrinterInstallerAssets` estrae `packaging/linux/*`
     (embeddati in `FinePdf.Core`) in `~/.local/share/FinePdf/installer`, poi `pkexec install.sh
@@ -215,3 +223,4 @@ Milestone e stato: elenco qui sotto.
 - [x] M8 — Margini di pagina (`PageMargins`/`SetMarginsAction`, campo mm in toolbar, guida tratteggiata nell'anteprima), opzioni avanzate di stampa `chiave=valore` (`PrintOptions.RawOptions` → `lp -o`), screenshot nel README (`build/screenshots.sh`) — 82 test verdi
 - [x] M9 — Persistenza config (`AppSettingsService` → `~/.config/FinePdf/settings.json`, chiavi `lastFolder`/`printerOutputFolder`), pannello Sorgenti a 2 schede (`FolderPaneViewModel`: *Cartella di lavoro* navigabile + *PDF da stampante* sola lettura), import immagini in-process (`DocumentImportService`, `FolderSourceService` con estensioni configurabili), **stampante virtuale CUPS** (backend Python + PPD + `install.sh`/`uninstall.sh` in `packaging/linux/`, embeddati; `IPrinterManager`/`LinuxPrinterManager` via `pkexec`; dialogo "Stampante virtuale…"), job CI `cups-integration` — 111 test unit verdi
 - [x] M10 — Stampante virtuale su **Windows**: nessun install nostro; `WindowsFolderPrinterManager` valida solo la cartella, l'utente usa una stampante PDF gratuita di terzi (Xodo/Documalis) e FinePdf ne osserva la cartella (scheda *PDF da stampante* navigabile su Windows). Dialogo "Stampante virtuale…" in modalità informativa. `docs/virtual-printer-windows.md`. 120 test verdi
+- [x] M11 — Cestinamento **differito** dei PDF della stampante virtuale (`FolderPaneViewModel.Hide` + `MainWindowViewModel._pendingTrash`, spostamento nel cestino solo in `Dispose()`): accodare non cancella più subito, ruotare/ricomporre resta possibile per tutta la sessione. Casella toolbar **«Schiarisci PDF»** (`ISheetRenderService.BrightenContent`, default on): filtro colore lighten/contrasto sul solo contenuto in anteprima — 129 test verdi

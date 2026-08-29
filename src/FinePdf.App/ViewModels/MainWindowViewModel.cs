@@ -33,6 +33,8 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly Dictionary<Sheet, SheetViewModel> _sheetViewModels = [];
     private readonly SemaphoreSlim _renderGate = new(3);
 
+    private readonly List<string> _pendingTrash = [];
+
     private bool _suppressSettingApply;
     private bool _limitationsDismissed;
     private string? _lastSavePath;
@@ -58,6 +60,9 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private double _selectedMarginMm;
+
+    [ObservableProperty]
+    private bool _brightenPreview = true;
 
     public MainWindowViewModel(
         IFolderSourceService workFolder,
@@ -85,6 +90,7 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         _printers = printers;
         _printerDialog = printerDialog;
         _recycleBin = recycleBin;
+        _renderer.BrightenContent = _brightenPreview;
 
         WorkPane = new FolderPaneViewModel(
             "Cartella di lavoro", canChangeFolder: true, workFolder, dialogs,
@@ -190,25 +196,41 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// Add a file from the "PDF da stampante" tab, then — if enabled — move the original to the
-    /// recycle bin (its pages were copied into the session cache first, so the composition still
-    /// works after the source is gone).
+    /// Add a file from the "PDF da stampante" tab. When "trash after add" is on, its pages are
+    /// copied into the session cache, the file is dropped from the list, and it is moved to the
+    /// recycle bin only when the app closes — so re-reading the pages keeps working for the whole
+    /// session (e.g. after a rotate) and nothing is deleted if the user later cancels the exit.
     /// </summary>
     private void ConsumePrinterFile(SourceFileViewModel file)
     {
-        if (!AddSource(file, importAsCopy: PrinterPane.TrashAfterAdd))
+        bool trash = PrinterPane.TrashAfterAdd;
+        if (!AddSource(file, importAsCopy: trash))
         {
             return;
         }
 
-        if (PrinterPane.TrashAfterAdd && _recycleBin.TryMoveToTrash(file.FullPath))
+        if (!trash)
         {
-            SetStatus($"«{file.FileName}» aggiunto e spostato nel cestino.");
+            return;
         }
+
+        PrinterPane.Hide(file.FullPath);
+        if (!_pendingTrash.Contains(file.FullPath, StringComparer.Ordinal))
+        {
+            _pendingTrash.Add(file.FullPath);
+        }
+
+        SetStatus($"«{file.FileName}» aggiunto — sarà spostato nel cestino alla chiusura.");
     }
 
     public void Dispose()
     {
+        // Deferred until a real exit: consumed "PDF da stampante" files go to the recycle bin now.
+        foreach (string path in _pendingTrash)
+        {
+            _recycleBin.TryMoveToTrash(path);
+        }
+
         WorkPane.Dispose();
         PrinterPane.Dispose();
         _import.CleanupSession();
@@ -730,6 +752,15 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         Apply(new SetMarginsAction(_composition, target));
+    }
+
+    partial void OnBrightenPreviewChanged(bool value)
+    {
+        _renderer.BrightenContent = value;
+        if (EnableAutoRender)
+        {
+            _ = RenderAllAsync();
+        }
     }
 
     private static bool MarginsRoughlyEqual(PageMargins a, PageMargins b) =>

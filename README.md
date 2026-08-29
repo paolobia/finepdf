@@ -11,6 +11,9 @@ cancellazione, imposizione "N pagine in una" (N-up), rotazione e stampa delle pa
   `png/jpg/bmp/gif/webp`, convertite in PDF una pagina per immagine) e *PDF da stampante*
   (cartella della stampante virtuale, sola lettura). Doppio click su un file di una qualsiasi
   scheda → accoda le pagine alla composizione. Ultima cartella e cartella stampante ricordate.
+  La scheda *PDF da stampante* ha l'opzione *Cestina i PDF dopo l'aggiunta* (default sì): una
+  volta accodato, il file sparisce dall'elenco e viene spostato nel cestino alla chiusura
+  dell'app (le pagine restano nella composizione).
 - **Stampante virtuale «FinePdf»**: su **Linux** registra una vera stampante di sistema
   (un prompt di autorizzazione) → [`docs/virtual-printer.md`](docs/virtual-printer.md); su
   **Windows** ci si appoggia a una stampante PDF gratuita di terzi e FinePdf ne osserva la
@@ -26,6 +29,8 @@ cancellazione, imposizione "N pagine in una" (N-up), rotazione e stampa delle pa
 - **Adattamento** (`FitMode`): predefinito di documento + override per foglio
   (adatta / dimensione reale / riempi).
 - **Margini** di pagina uniformi (mm), applicati a ogni foglio; guida tratteggiata nell'anteprima.
+- **Schiarisci PDF** (casella in toolbar, attiva di default): schiarisce scansioni scure e
+  sfondi grigi nella sola anteprima; non tocca il PDF salvato o stampato.
 - **Stampa**: il pannello destro **è** l'anteprima di stampa; dialog interno con stampante,
   copie, intervallo (`1-3, 5`), fronte/retro e **opzioni avanzate** libere `chiave=valore`
   (passate a CUPS come `-o chiave=valore`: `media`, `Resolution`, `ColorModel`, …).

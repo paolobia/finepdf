@@ -10,7 +10,9 @@ delete, "N pages on one sheet" (N-up) imposition, rotation and printing.
 - **Two-tab sources panel**: *Cartella di lavoro* (browsable; accepts PDFs **and images**
   `png/jpg/bmp/gif/webp`, converted to a one-page PDF each) and *PDF da stampante* (the virtual
   printer's folder, read-only). Double-click a file in either tab to append its pages. Both
-  folders are remembered between runs.
+  folders are remembered between runs. The *PDF da stampante* tab has a *Cestina i PDF dopo
+  l'aggiunta* option (on by default): once appended, the file drops off the list and is moved to
+  the recycle bin when the app closes (its pages stay in the composition).
 - **"FinePdf" virtual printer**: on **Linux** it registers a real system printer (one
   authorisation prompt) → [`docs/virtual-printer.md`](docs/virtual-printer.md); on **Windows**
   you use a free third-party PDF printer and FinePdf just watches its folder →
@@ -26,6 +28,8 @@ delete, "N pages on one sheet" (N-up) imposition, rotation and printing.
 - **Blank page**: from the context menu, inherits the document's size and orientation.
 - **Fit** (`FitMode`): document default + per-sheet override (fit / actual size / fill).
 - Uniform page **margins** (mm) applied to every sheet; dashed guide in the preview.
+- **Schiarisci PDF** (toolbar checkbox, on by default): lightens dark scans and grey page
+  backgrounds in the preview only; never touches the saved or printed PDF.
 - **Print**: the right pane *is* the print preview; an internal dialog covers printer, copies,
   range (`1-3, 5`), one/two-sided and free-form **advanced options** `key=value` (sent to CUPS
   as `-o key=value`: `media`, `Resolution`, `ColorModel`, …).

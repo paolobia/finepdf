@@ -19,6 +19,7 @@ public sealed partial class FolderPaneViewModel : ViewModelBase, IDisposable
     private readonly Func<string, Task<string>> _describe;
     private readonly Action<string>? _onFolderChanged;
     private readonly Action<bool>? _onTrashAfterAddChanged;
+    private readonly HashSet<string> _hiddenPaths = new(StringComparer.Ordinal);
 
     [ObservableProperty]
     private string _folderPath = string.Empty;
@@ -99,10 +100,32 @@ public sealed partial class FolderPaneViewModel : ViewModelBase, IDisposable
         Files.Clear();
         foreach (string path in _source.Files)
         {
+            if (_hiddenPaths.Contains(path))
+            {
+                continue;
+            }
+
             Files.Add(new SourceFileViewModel(path));
         }
 
         _ = FillSubtitlesAsync([.. Files]);
+    }
+
+    /// <summary>
+    /// Drop a file from the list without touching the disk. Used after a "PDF da stampante" file
+    /// has been consumed into the composition: it stays on disk for the whole session (so pages
+    /// can still be re-read) and is moved to the recycle bin only when the app closes.
+    /// </summary>
+    public void Hide(string fullPath)
+    {
+        _hiddenPaths.Add(fullPath);
+        for (int i = Files.Count - 1; i >= 0; i--)
+        {
+            if (string.Equals(Files[i].FullPath, fullPath, StringComparison.Ordinal))
+            {
+                Files.RemoveAt(i);
+            }
+        }
     }
 
     public void Dispose()

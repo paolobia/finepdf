@@ -15,6 +15,13 @@ public interface ISheetRenderService
     /// </summary>
     byte[] RenderSheetPng(Composition composition, Sheet sheet, int pixelWidth);
 
+    /// <summary>
+    /// When <c>true</c> (default), the rendered page content is passed through a gentle
+    /// lighten/contrast filter so dark scans and grey page backgrounds read better on screen.
+    /// Only affects the preview, never the saved or printed PDF. Toggling it clears the cache.
+    /// </summary>
+    bool BrightenContent { get; set; }
+
     /// <summary>Drops every cached render (e.g. when a source file changed on disk).</summary>
     void InvalidateCache();
 }

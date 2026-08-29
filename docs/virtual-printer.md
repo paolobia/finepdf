@@ -8,11 +8,14 @@ Registra una stampante di sistema chiamata **FinePdf**. Stampando lì da qualsia
 un nome tipo `2026-08-28_09-15-42__Relazione__cairo.pdf`.
 
 Nell'app, la scheda **«PDF da stampante»** del pannello sinistro mostra quella cartella in tempo
-reale. Se **«Cestina i PDF dopo l'aggiunta»** è attivo (impostazione della scheda, predefinito
-sì), dopo aver accodato le pagine il PDF di origine viene spostato nel **cestino** (recuperabile;
-le pagine restano nella composizione perché copiate in cache). Dopo aver stampato, il nuovo PDF
-compare subito e con un doppio click lo aggiungi alla
+reale. Dopo aver stampato, il nuovo PDF compare subito e con un doppio click lo aggiungi alla
 composizione.
+
+Se **«Cestina i PDF dopo l'aggiunta»** è attivo (impostazione della scheda, predefinito sì),
+accodando un PDF le sue pagine vengono copiate in cache e il file **sparisce dall'elenco** ma
+resta su disco per tutta la sessione (così ruotare o ricomporre continua a funzionare). Viene
+spostato nel **cestino** (recuperabile) solo alla **chiusura dell'app** — e non se annulli
+l'uscita alla richiesta «modifiche non salvate».
 
 ## Installazione
 
